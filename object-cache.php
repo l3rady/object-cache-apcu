@@ -368,7 +368,7 @@ class WP_Object_Cache {
 		}
 
 		$this->abspath        = md5( ABSPATH );
-		$this->apcu_available = ( extension_loaded( 'apcu' ) && ini_get( 'apcu.enabled' ) );
+		$this->apcu_available = ( extension_loaded( 'apcu' ) && ini_get( 'apc.enabled' ) );
 		$this->multi_site     = is_multisite();
 		$this->blog_prefix    = $this->multi_site ? (int) $blog_id : 1;
 	}
