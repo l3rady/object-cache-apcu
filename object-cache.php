@@ -364,7 +364,19 @@ class WP_Object_Cache {
 			 * Set in config if you are using some sort of shared
 			 * config where ABSPATH is the same on all sites
 			 */
-			define( 'WP_APCU_KEY_SALT', 'wp' );
+			if(
+				defined('DB_NAME') &&
+				defined('DB_USER') &&
+				defined('DB_PASSWORD') &&
+				defined('DB_HOST')
+			){
+				define(
+					'WP_APCU_KEY_SALT',
+					md5(DB_NAME.DB_USER.DB_PASSWORD.DB_HOST)
+				);
+			}else{
+				define( 'WP_APCU_KEY_SALT', 'wp' );
+			}
 		}
 
 		$this->abspath        = md5( ABSPATH );
