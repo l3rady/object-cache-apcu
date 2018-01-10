@@ -36,6 +36,9 @@ Define `WP_APCU_KEY_SALT` to something that is unique for each install (like an 
 
 ## Changelog ##
 
+### 1.0.1 ###
++ Make `$cache_hits` and `$cache_misses` public params for stats plugins to access
+
 ### 1.0 ###
 + Initial release, forked from [WordPress-APC-Object-Cache][3]
 
