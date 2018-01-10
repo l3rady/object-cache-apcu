@@ -5,7 +5,7 @@ Donate link: [http://l3rady.com/donate][2]<br/>
 Tags: APCu, object cache, backend, cache, performance, speed<br/>
 Requires at least: 3.3<br/>
 Tested up to: 4.5.3<br/>
-Stable tag: 1.0
+Stable tag: 1.0.1
 
 WordPress APCu Object Cache Backend provides a persistent memory-based backend for the WordPress object cache.
 
