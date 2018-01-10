@@ -3,7 +3,7 @@
 Plugin Name: WordPress APCu Object Cache Backend
 Plugin URI: https://github.com/l3rady/WordPress-APCu-Object-Cache
 Description: APCu backend for WordPress' Object Cache
-Version: 1.0
+Version: 1.0.1
 Author: Scott Cariss
 Author URI: http://l3rady.com
 */
@@ -283,14 +283,14 @@ class WP_Object_Cache {
 	 * @var int Keeps count of how many times the
 	 *    cache was successfully received from APCu
 	 */
-	private $cache_hits = 0;
+	public $cache_hits = 0;
 
 
 	/**
 	 * @var int Keeps count of how many times the
 	 *    cache was not successfully received from APCu
 	 */
-	private $cache_misses = 0;
+	public $cache_misses = 0;
 
 
 	/**
