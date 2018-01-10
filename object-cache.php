@@ -283,14 +283,14 @@ class WP_Object_Cache {
 	 * @var int Keeps count of how many times the
 	 *    cache was successfully received from APCu
 	 */
-	private $cache_hits = 0;
+	public $cache_hits = 0;
 
 
 	/**
 	 * @var int Keeps count of how many times the
 	 *    cache was not successfully received from APCu
 	 */
-	private $cache_misses = 0;
+	public $cache_misses = 0;
 
 
 	/**
