@@ -334,7 +334,7 @@ class WP_Object_Cache
     private $non_persistent_groups = [];
 
     /**
-     * @var array|bool
+     * @var array
      */
     private $local_cache = [];
 
@@ -385,8 +385,8 @@ class WP_Object_Cache
          * define('WP_APCU_LOCAL_CACHE', false) to disable local
          * array cache and force all cache to be returned from APCu
          */
-        if (defined('WP_APCU_LOCAL_CACHE') && !WP_APCU_LOCAL_CACHE) {
-            $this->local_cache = false;
+        if (!defined('WP_APCU_LOCAL_CACHE')) {
+            define('WP_APCU_LOCAL_CACHE', true);
         }
 
         $this->abspath = md5(ABSPATH);
@@ -432,7 +432,7 @@ class WP_Object_Cache
     private function _add($key, $var, $ttl)
     {
         if (apcu_add($key, $var, max((int)$ttl, 0))) {
-            if ($this->local_cache !== false) {
+            if (WP_APCU_LOCAL_CACHE) {
                 $this->local_cache[$key] = is_object($var) ? clone $var : $var;
             }
             return true;
@@ -517,7 +517,7 @@ class WP_Object_Cache
         }
 
         $value = apcu_dec($key, max((int)$offset, 0));
-        if ($value !== false && $this->local_cache !== false) {
+        if ($value !== false && WP_APCU_LOCAL_CACHE) {
             $this->local_cache[$key] = $value;
         }
         return $value;
@@ -623,7 +623,7 @@ class WP_Object_Cache
     {
         $this->non_persistent_cache = [];
 
-        if ($this->local_cache !== false) {
+        if (WP_APCU_LOCAL_CACHE) {
             $this->local_cache = [];
         }
 
@@ -731,14 +731,13 @@ class WP_Object_Cache
      */
     private function _get($key, &$success = null)
     {
-        if ($this->local_cache !== false
-            && array_key_exists($key, $this->local_cache)
+        if (WP_APCU_LOCAL_CACHE && array_key_exists($key, $this->local_cache)
         ) {
             $success = true;
             $var = $this->local_cache[$key];
         } else {
             $var = apcu_fetch($key, $success);
-            if ($success && $this->local_cache !== false) {
+            if ($success && WP_APCU_LOCAL_CACHE) {
                 $this->local_cache[$key] = $var;
             }
         }
@@ -917,7 +916,7 @@ class WP_Object_Cache
         }
 
         $value = apcu_inc($key, max((int)$offset, 0));
-        if ($value !== false && $this->local_cache !== false) {
+        if ($value !== false && WP_APCU_LOCAL_CACHE) {
             $this->local_cache[$key] = $value;
         }
         return $value;
@@ -1077,7 +1076,7 @@ class WP_Object_Cache
         }
 
         if (apcu_store($key, $var, max((int)$ttl, 0))) {
-            if ($this->local_cache !== false) {
+            if (WP_APCU_LOCAL_CACHE) {
                 $this->local_cache[$key] = $var;
             }
             return true;
