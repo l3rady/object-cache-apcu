@@ -1,11 +1,11 @@
 # WordPress APCu Object Cache Backend #
 
 Contributors: l3rady<br/>
-Donate link: [http://l3rady.com/donate][2]<br/>
+Donate link: [https://scott.cariss.dev/donate][2]<br/>
 Tags: APCu, object cache, backend, cache, performance, speed<br/>
 Requires at least: 3.3<br/>
-Tested up to: 4.5.3<br/>
-Stable tag: 1.0.1
+Tested up to: 5.3<br/>
+Stable tag: 1.1
 
 WordPress APCu Object Cache Backend provides a persistent memory-based backend for the WordPress object cache.
 
@@ -36,6 +36,10 @@ Define `WP_APCU_KEY_SALT` to something that is unique for each install (like an 
 
 ## Changelog ##
 
+### 1.1 ###
++ Add local array cache to reduce APCu calls for repeated requests to same keys during page load. Props to [rob006][4]
++ Add `WP_APCU_LOCAL_CACHE` define to disable local cache for edge cases where local cache can cause memory exhaustion issues
+
 ### 1.0.1 ###
 + Make `$cache_hits` and `$cache_misses` public params for stats plugins to access
 
@@ -43,5 +47,6 @@ Define `WP_APCU_KEY_SALT` to something that is unique for each install (like an 
 + Initial release, forked from [WordPress-APC-Object-Cache][3]
 
 [1]: https://wordpress.org/plugins/apc/
-[2]: http://l3rady.com/donate
+[2]: https://scott.cariss.dev/donate
 [3]: https://github.com/l3rady/WordPress-APC-Object-Cache
+[4]: https://github.com/rob006
