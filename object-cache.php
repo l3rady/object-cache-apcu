@@ -41,7 +41,7 @@ defined('ABSPATH') or exit;
  */
 function wp_cache_add($key, $data, $group = 'default', $expire = 0)
 {
-    return WP_Object_Cache::instance()->add($key, $data, $group, $expire);
+    return APCu_Object_Cache::instance()->add($key, $data, $group, $expire);
 }
 
 
@@ -72,7 +72,7 @@ function wp_cache_close()
  */
 function wp_cache_decr($key, $offset = 1, $group = 'default')
 {
-    return WP_Object_Cache::instance()->decr($key, $offset, $group);
+    return APCu_Object_Cache::instance()->decr($key, $offset, $group);
 }
 
 
@@ -86,7 +86,7 @@ function wp_cache_decr($key, $offset = 1, $group = 'default')
  */
 function wp_cache_delete($key, $group = 'default')
 {
-    return WP_Object_Cache::instance()->delete($key, $group);
+    return APCu_Object_Cache::instance()->delete($key, $group);
 }
 
 
@@ -97,7 +97,7 @@ function wp_cache_delete($key, $group = 'default')
  */
 function wp_cache_flush()
 {
-    return WP_Object_Cache::instance()->flush();
+    return APCu_Object_Cache::instance()->flush();
 }
 
 
@@ -113,7 +113,7 @@ function wp_cache_flush()
  */
 function wp_cache_get($key, $group = 'default', $force = false, &$found = null)
 {
-    return WP_Object_Cache::instance()->get($key, $group, $force, $found);
+    return APCu_Object_Cache::instance()->get($key, $group, $force, $found);
 }
 
 
@@ -132,7 +132,7 @@ function wp_cache_get($key, $group = 'default', $force = false, &$found = null)
  */
 function wp_cache_get_multi($groups)
 {
-    return WP_Object_Cache::instance()->get_multi($groups);
+    return APCu_Object_Cache::instance()->get_multi($groups);
 }
 
 
@@ -147,18 +147,18 @@ function wp_cache_get_multi($groups)
  */
 function wp_cache_incr($key, $offset = 1, $group = 'default')
 {
-    return WP_Object_Cache::instance()->incr($key, $offset, $group);
+    return APCu_Object_Cache::instance()->incr($key, $offset, $group);
 }
 
 
 /**
  * Sets up Object Cache Global and assigns it.
  *
- * @global WP_Object_Cache $wp_object_cache WordPress Object Cache
+ * @global APCu_Object_Cache $APCu_Object_Cache WordPress Object Cache
  */
 function wp_cache_init()
 {
-    $GLOBALS['wp_object_cache'] = WP_Object_Cache::instance();
+    $GLOBALS['APCu_Object_Cache'] = APCu_Object_Cache::instance();
 }
 
 
@@ -174,7 +174,7 @@ function wp_cache_init()
  */
 function wp_cache_replace($key, $data, $group = 'default', $expire = 0)
 {
-    return WP_Object_Cache::instance()->replace($key, $data, $group, $expire);
+    return APCu_Object_Cache::instance()->replace($key, $data, $group, $expire);
 }
 
 
@@ -190,7 +190,7 @@ function wp_cache_replace($key, $data, $group = 'default', $expire = 0)
  */
 function wp_cache_set($key, $data, $group = 'default', $expire = 0)
 {
-    return WP_Object_Cache::instance()->set($key, $data, $group, $expire);
+    return APCu_Object_Cache::instance()->set($key, $data, $group, $expire);
 }
 
 
@@ -203,7 +203,7 @@ function wp_cache_set($key, $data, $group = 'default', $expire = 0)
  */
 function wp_cache_switch_to_blog($blog_id)
 {
-    WP_Object_Cache::instance()->switch_to_blog($blog_id);
+    APCu_Object_Cache::instance()->switch_to_blog($blog_id);
 }
 
 
@@ -214,7 +214,7 @@ function wp_cache_switch_to_blog($blog_id)
  */
 function wp_cache_add_global_groups($groups)
 {
-    WP_Object_Cache::instance()->add_global_groups($groups);
+    APCu_Object_Cache::instance()->add_global_groups($groups);
 }
 
 
@@ -225,7 +225,7 @@ function wp_cache_add_global_groups($groups)
  */
 function wp_cache_add_non_persistent_groups($groups)
 {
-    WP_Object_Cache::instance()->add_non_persistent_groups($groups);
+    APCu_Object_Cache::instance()->add_non_persistent_groups($groups);
 }
 
 
@@ -251,7 +251,7 @@ function wp_cache_reset()
  */
 function wp_cache_flush_site($sites = null)
 {
-    return WP_Object_Cache::instance()->flush_sites($sites);
+    return APCu_Object_Cache::instance()->flush_sites($sites);
 }
 
 
@@ -264,7 +264,7 @@ function wp_cache_flush_site($sites = null)
  */
 function wp_cache_flush_group($groups = 'default')
 {
-    return WP_Object_Cache::instance()->flush_groups($groups);
+    return APCu_Object_Cache::instance()->flush_groups($groups);
 }
 
 
@@ -276,7 +276,7 @@ function wp_cache_flush_group($groups = 'default')
  * contents available by using a key, which is used to name and later retrieve
  * the cache contents.
  */
-class WP_Object_Cache
+class APCu_Object_Cache
 {
 
     /**
@@ -346,14 +346,14 @@ class WP_Object_Cache
     private static $instance;
 
     /**
-     * Singleton. Return instance of WP_Object_Cache
+     * Singleton. Return instance of APCu_Object_Cache
      *
-     * @return WP_Object_Cache
+     * @return APCu_Object_Cache
      */
     public static function instance()
     {
         if (self::$instance === null) {
-            self::$instance = new WP_Object_Cache();
+            self::$instance = new APCu_Object_Cache();
         }
 
         return self::$instance;
@@ -394,7 +394,7 @@ class WP_Object_Cache
         $this->multi_site = is_multisite();
         $this->blog_prefix = $this->multi_site ? $blog_id : 1;
     }
-    
+
     public function stats()
     {
         echo '<p>';
@@ -403,8 +403,8 @@ class WP_Object_Cache
         echo '</p>';
         echo '<ul>';
 
-        foreach ( $this->local_cache as $group => $cache ) {
-            echo '<li><strong>Group:</strong> ' . esc_html( $group ) . ' - ( ' . number_format( strlen( serialize( $cache ) ) / KB_IN_BYTES, 2 ) . 'k )</li>';
+        foreach ($this->local_cache as $group => $cache) {
+            echo '<li><strong>Group:</strong> ' . esc_html($group) . ' - ( ' . number_format(strlen(serialize($cache)) / KB_IN_BYTES, 2) . 'k )</li>';
         }
         echo '</ul>';
     }
@@ -745,7 +745,8 @@ class WP_Object_Cache
      */
     private function _get($key, &$success = null)
     {
-        if (WP_APCU_LOCAL_CACHE && array_key_exists($key, $this->local_cache)
+        if (
+            WP_APCU_LOCAL_CACHE && array_key_exists($key, $this->local_cache)
         ) {
             $success = true;
             $var = $this->local_cache[$key];
