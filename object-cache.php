@@ -421,7 +421,7 @@ class WP_Object_Cache
      */
     public function add($key, $var, $group = 'default', $ttl = 0)
     {
-        if (wp_suspend_cache_addition()) {
+        if (function_exists('wp_suspend_cache_addition') && wp_suspend_cache_addition()) {
             return false;
         }
 
