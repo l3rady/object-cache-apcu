@@ -211,6 +211,22 @@ function wp_cache_set($key, $data, $group = 'default', $expire = 0)
 
 
 /**
+ * Sets multiple values to the cache in one call.
+ *
+ * @param array  $data   Array of keys and values to be set.
+ * @param string $group  Optional. Where the cache contents are grouped. Default default.
+ * @param int    $expire Optional. When to expire the cache contents, in seconds.
+ *                       Default 0 (no expiration).
+ * @return bool[] Array of return values, grouped by key. Each value is either
+ *                true on success, or false on failure.
+ */
+function wp_cache_set_multiple(array $data, $group = 'default', $expire = 0)
+{
+    return WP_Object_Cache::instance()->set_multiple($data, $group, $expire);
+}
+
+
+/**
  * Switch the internal blog id.
  *
  * This changes the blog id used to create keys in blog specific groups.
@@ -1109,6 +1125,26 @@ class WP_Object_Cache
         }
 
         return $this->_set($key, $var, $ttl);
+    }
+
+    /**
+     * Sets multiple values to the cache in one call.
+     *
+     * @param array  $data   Array of key and value to be set.
+     * @param string $group  Optional. Where the cache contents are grouped. Default default.
+     * @param int    $ttl    Optional. When to expire the cache contents, in seconds.
+     *                       Default 0 (no expiration).
+     * @return bool[] Array of return values, grouped by key. Each value is always true.
+     */
+    public function set_multiple(array $data, $group = 'default', $ttl = 0)
+    {
+        $values = [];
+
+        foreach ( $data as $key => $var ) {
+            $values[$key] = $this->set($key, $var, $group, $ttl);
+        }
+
+        return $values;
     }
 
     /**
