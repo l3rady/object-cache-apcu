@@ -132,6 +132,17 @@ function wp_cache_flush()
 
 
 /**
+ * Removes all cache items from the in-memory runtime cache.
+ *
+ * @return bool True on success, false on failure.
+ */
+function wp_cache_flush_runtime()
+{
+    return WP_Object_Cache::instance()->flush_runtime();
+}
+
+
+/**
  * Retrieves the cache contents from the cache by key and group.
  *
  * @param int|string $key What the contents in the cache are called
@@ -308,6 +319,32 @@ function wp_cache_flush_site($sites = null)
 function wp_cache_flush_group($groups = 'default')
 {
     return WP_Object_Cache::instance()->flush_groups($groups);
+}
+
+
+/**
+ * Determines whether the object cache implementation supports a particular feature.
+ *
+ * @since 6.1.0
+ *
+ * @param string $feature Name of the feature to check for. Possible values include:
+ *                        'add_multiple', 'set_multiple', 'get_multiple', 'delete_multiple',
+ *                        'flush_runtime', 'flush_group'.
+ * @return bool True if the feature is supported, false otherwise.
+ */
+function wp_cache_supports( $feature ) {
+    switch ( $feature ) {
+        case 'add_multiple':
+        case 'set_multiple':
+        case 'get_multiple':
+        case 'delete_multiple':
+        case 'flush_runtime':
+        case 'flush_group':
+            return true;
+
+    default:
+        return false;
+    }
 }
 
 
@@ -725,6 +762,24 @@ class WP_Object_Cache
         }
 
         if ($this->_apcuAvailable) {
+            apcu_clear_cache();
+        }
+
+        return true;
+    }
+
+    /**
+     * if using local cache clear that else flush all
+     *
+     * @return bool Always returns true
+     */
+    public function flush_runtime()
+    {
+        $this->_nonPersistentCache = [];
+
+        if (WP_APCU_LOCAL_CACHE) {
+            $this->_localCache = [];
+        } elseif ($this->_apcuAvailable) {
             apcu_clear_cache();
         }
 
