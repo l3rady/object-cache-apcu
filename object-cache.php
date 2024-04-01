@@ -46,6 +46,22 @@ function wp_cache_add($key, $data, $group = 'default', $expire = 0)
 
 
 /**
+ * Adds multiple values to the cache in one call.
+ *
+ * @param array  $data   Array of keys and values to be set.
+ * @param string $group  Optional. Where the cache contents are grouped. Default default.
+ * @param int    $expire Optional. When to expire the cache contents, in seconds.
+ *                       Default 0 (no expiration).
+ * @return bool[] Array of return values, grouped by key. Each value is either
+ *                true on success, or false if cache key and group already exist.
+ */
+function wp_cache_add_multiple(array $data, $group = 'default', $expire = 0)
+{
+	return WP_Object_Cache::instance()->add_multiple($data, $group, $expire);
+}
+
+
+/**
  * Closes the cache.
  *
  * This function has ceased to do anything since WordPress 2.5. The
@@ -432,6 +448,27 @@ class WP_Object_Cache
         }
 
         return $this->_add($key, $var, $ttl);
+    }
+
+    /**
+     * Adds multiple values to the cache in one call.
+     *
+     * @param array  $data   Array of keys and values to be added.
+     * @param string $group  Optional. Where the cache contents are grouped. Default default.
+     * @param int    $ttl    Optional. When to expire the cache contents, in seconds.
+     *                       Default 0 (no expiration).
+     * @return bool[] Array of return values, grouped by key. Each value is either
+     *                true on success, or false if cache key and group already exist.
+     */
+    public function add_multiple(array $data, $group = 'default', $ttl = 0)
+    {
+        $values = [];
+
+        foreach ($data as $key => $value) {
+            $values[$key] = $this->add($key, $value, $group, $ttl);
+        }
+
+        return $values;
     }
 
     /**
