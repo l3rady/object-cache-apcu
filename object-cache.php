@@ -1,14 +1,14 @@
 <?php
 /*
 Plugin Name: WordPress APCu Object Cache Backend
-Plugin URI: https://github.com/l3rady/WordPress-APCu-Object-Cache
+Plugin URI: https://github.com/l3rady/object-cache-apcu
 Description: APCu backend for WordPress' Object Cache
 Version: 1.1
 Author: Scott Cariss
-Author URI: http://scott.cariss.dev
+Author URI: https://cariss.dev
 */
 
-/*  Copyright 2019  Scott Cariss  (email : scott@cariss.dev)
+/*  Copyright 2024  Scott Cariss  (email : scott@cariss.dev)
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
