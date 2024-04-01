@@ -107,6 +107,20 @@ function wp_cache_delete($key, $group = 'default')
 
 
 /**
+ * Deletes multiple values from the cache in one call.
+ *
+ * @param array  $keys  Array of keys under which the cache to deleted.
+ * @param string $group Optional. Where the cache contents are grouped. Default default.
+ * @return bool[] Array of return values, grouped by key. Each value is either
+ *                true on success, or false if the contents were not deleted.
+ */
+function wp_cache_delete_multiple(array $keys, $group = 'default')
+{
+	return WP_Object_Cache::instance()->delete_multiple($keys, $group);
+}
+
+
+/**
  * Removes all cache items.
  *
  * @return bool False on failure, true on success
@@ -632,6 +646,25 @@ class WP_Object_Cache
     }
 
     /**
+     * Deletes multiple values from the cache in one call.
+     *
+     * @param array  $keys  Array of keys to be deleted.
+     * @param string $group Optional. Where the cache contents are grouped. Default default.
+     * @return bool[] Array of return values, grouped by key. Each value is either
+     *                true on success, or false if the contents were not deleted.
+     */
+    public function delete_multiple(array $keys, $group = 'default')
+    {
+        $values = [];
+
+        foreach ($keys as $key) {
+            $values[$key] = $this->delete($key, $group);
+        }
+
+        return $values;
+    }
+
+    /**
      * Remove the contents of the APCu cache key in the group
      *
      * If the cache key does not exist in the group, then nothing will happen.
@@ -908,7 +941,7 @@ class WP_Object_Cache
         return $values;
     }
 
-    
+
     /**
      * Get the sites cache version
      *
