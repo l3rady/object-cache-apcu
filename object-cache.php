@@ -134,21 +134,18 @@ function wp_cache_get($key, $group = 'default', $force = false, &$found = null)
 
 
 /**
- * Retrieve multiple values from cache.
+ * Retrieves multiple values from the cache in one call.
  *
- * Gets multiple values from cache, including across multiple groups
- *
- * Usage: array( 'group0' => array( 'key0', 'key1', 'key2', ), 'group1' => array( 'key0' ) )
- *
- * @param array $groups Array of groups and keys to retrieve
- *
- * @return array Array of cached values as
- *    array( 'group0' => array( 'key0' => 'value0', 'key1' => 'value1', 'key2' => 'value2', ) )
- *    Non-existent keys are not returned.
+ * @param array  $keys  Array of keys under which the cache contents are stored.
+ * @param string $group Optional. Where the cache contents are grouped. Default empty.
+ * @param bool   $force Optional. Whether to force an update of the local cache
+ *                      from the persistent cache. Default false.
+ * @return array Array of return values, grouped by key. Each value is either
+ *               the cache contents on success, or false on failure.
  */
-function wp_cache_get_multi($groups)
+function wp_cache_get_multiple($keys, $group = 'default', $force = false)
 {
-    return WP_Object_Cache::instance()->get_multi($groups);
+    return WP_Object_Cache::instance()->get_multiple($keys, $group, $force);
 }
 
 
@@ -889,43 +886,29 @@ class WP_Object_Cache
         return $this->_groupVersions[$group];
     }
 
+
     /**
-     * Retrieve multiple values from cache.
+     * Retrieves multiple values from the cache in one call.
      *
-     * Gets multiple values from cache, including across multiple groups
-     *
-     * Usage: array( 'group0' => array( 'key0', 'key1', 'key2', ), 'group1' => array( 'key0' ) )
-     *
-     * @param array $groups Array of groups and keys to retrieve
-     *
-     * @return array|bool Array of cached values as
-     *    array( 'group0' => array( 'key0' => 'value0', 'key1' => 'value1', 'key2' => 'value2', ) )
-     *    Non-existent keys are not returned.
+     * @param array  $keys  Array of keys under which the cache contents are stored.
+     * @param string $group Optional. Where the cache contents are grouped. Default 'default'.
+     * @param bool   $force Optional. Whether to force an update of the local cache
+     *                      from the persistent cache. Default false.
+     * @return array Array of return values, grouped by key. Each value is either
+     *               the cache contents on success, or false on failure.
      */
-    public function get_multi($groups)
+    public function get_multiple($keys, $group = 'default', $force = false)
     {
-        if (empty($groups) || !is_array($groups)) {
-            return false;
+        $values = [];
+
+        foreach ($keys as $key) {
+            $values[$key] = $this->get($key, $group, $force);
         }
 
-        $vars = [];
-        $success = false;
-
-        foreach ($groups as $group => $keys) {
-            $vars[$group] = [];
-
-            foreach ($keys as $key) {
-                $var = $this->get($key, $group, false, $success);
-
-                if ($success) {
-                    $vars[$group][$key] = $var;
-                }
-            }
-        }
-
-        return $vars;
+        return $values;
     }
 
+    
     /**
      * Get the sites cache version
      *
