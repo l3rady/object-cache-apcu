@@ -1,0 +1,13 @@
+{
+    "name": "l3rady/object-cache-apcu",
+    "description": "APCu backend for WordPress' Object Cache",
+    "type": "wordpress-dropin",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Scott Cariss",
+            "email": "scott@cariss.dev"
+        }
+    ],
+    "require": {}
+}
