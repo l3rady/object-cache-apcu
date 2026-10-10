@@ -16,7 +16,7 @@ export HOST_GID := $(shell id -g)
 COMPOSE := docker compose
 
 .DEFAULT_GOAL := help
-.PHONY: help build shell composer deps lint fix smoke test-core matrix clean
+.PHONY: help build shell composer deps lint fix smoke test test-apcu test-known-bugs coverage test-wp test-wp-ms test-core matrix clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "} {printf "  %-12s %s\n", $$1, $$2}'
@@ -45,13 +45,30 @@ fix: deps ## Auto-fix coding standard violations with phpcbf
 smoke: ## Verify PHP, APCu, mysqli and that object-cache.php lints
 	$(COMPOSE) run --build --rm php sh docker/smoke.sh
 
-test-core: ## Run WordPress core's cache tests against the drop-in (WP_VERSION)
-	$(COMPOSE) run --build --rm wp-tests $(if $(ARGS),$(ARGS),php ./vendor/bin/phpunit --group cache)
+test-apcu: deps ## Run the plain APCu tests (PHPUnit, no WordPress)
+	$(COMPOSE) run --build --rm php vendor/bin/phpunit $(ARGS)
 
-matrix: ## Smoke test every PHP version in MATRIX
+test-known-bugs: deps ## Run tests that document open bugs (they are expected to fail)
+	$(COMPOSE) run --build --rm php vendor/bin/phpunit --exclude-group none --group known-bug $(ARGS)
+
+coverage: deps ## Run the plain APCu tests with a coverage report (pcov)
+	$(COMPOSE) run --build --rm coverage vendor/bin/phpunit --coverage-text $(ARGS)
+
+test-wp: ## Run our WordPress-based tests against a real WordPress (single site)
+	$(COMPOSE) run --build --rm wp-tests sh /opt/object-cache-apcu/docker/wp-tests.sh $(ARGS)
+
+test-wp-ms: ## Run our WordPress-based tests as multisite
+	$(COMPOSE) run --build --rm -e WP_MULTISITE=1 wp-tests sh /opt/object-cache-apcu/docker/wp-tests.sh $(ARGS)
+
+test-core: ## Run WordPress core's own tests (cache, options, meta, ...) against the drop-in
+	$(COMPOSE) run --build --rm wp-tests sh /opt/object-cache-apcu/docker/core-tests.sh $(ARGS)
+
+test: test-apcu test-wp test-wp-ms test-core ## Run every test layer
+
+matrix: deps ## Smoke test and run the plain APCu tests on every PHP version in MATRIX
 	@for v in $(MATRIX); do \
 		echo "=== PHP $$v ==="; \
-		PHP_VERSION=$$v $(COMPOSE) run --build --rm php sh docker/smoke.sh || exit 1; \
+		PHP_VERSION=$$v $(COMPOSE) run --build --rm php sh -c 'sh docker/smoke.sh && vendor/bin/phpunit' || exit 1; \
 	done
 
 clean: ## Remove containers, volumes and built images

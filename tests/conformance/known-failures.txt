@@ -1,0 +1,11 @@
+# Core tests that are expected to fail against this drop-in.
+#
+# One entry per line: Class::test_name | reason
+#
+# `make test-core` fails if a test fails that is NOT listed here (a regression),
+# and also if a listed test now passes (a stale entry: remove it). Every entry
+# needs a reason; link the issue that will fix it where there is one.
+
+Tests_Cache::test_decr | https://github.com/l3rady/object-cache-apcu/issues/27: decr() can go below zero, core clamps at 0
+Tests_Cache::test_wp_cache_decr | https://github.com/l3rady/object-cache-apcu/issues/27: decr() can go below zero, core clamps at 0
+Tests_Cache::test_wp_cache_flush_group | not a bug: with an external cache core expects false + _doing_it_wrong, the path for caches that do not support flush_group; this drop-in supports it (covered by our own tests)

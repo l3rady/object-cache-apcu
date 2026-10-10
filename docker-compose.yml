@@ -79,6 +79,8 @@ services:
         condition: service_healthy
     volumes:
       - ./object-cache.php:/opt/wordpress-develop/src/wp-content/object-cache.php:ro
+      - ./docker:/opt/object-cache-apcu/docker:ro
+      - ./tests:/opt/object-cache-apcu/tests:ro
     environment:
       WP_DB_HOST: db
 

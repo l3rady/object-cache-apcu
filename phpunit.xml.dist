@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<phpunit
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.6/phpunit.xsd"
+	bootstrap="tests/apcu/bootstrap.php"
+	colors="true"
+	beStrictAboutTestsThatDoNotTestAnything="true"
+	failOnRisky="true"
+	failOnWarning="true"
+>
+	<testsuites>
+		<!-- Plain APCu tests: no WordPress, only the stubs in tests/apcu/bootstrap.php. -->
+		<testsuite name="apcu">
+			<directory prefix="test-" suffix=".php">tests/apcu</directory>
+		</testsuite>
+	</testsuites>
+
+	<groups>
+		<exclude>
+			<!--
+			Tests that document a bug that is still open. They fail on purpose until
+			the fix lands; the fix removes the tag. Run them with `make test-known-bugs`.
+			-->
+			<group>known-bug</group>
+		</exclude>
+	</groups>
+
+	<coverage>
+		<include>
+			<file>object-cache.php</file>
+		</include>
+	</coverage>
+</phpunit>

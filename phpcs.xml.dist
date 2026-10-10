@@ -3,6 +3,7 @@
 	<description>WordPress Coding Standards for the APCu object cache drop-in. Run with `make lint` / `make fix`.</description>
 
 	<file>object-cache.php</file>
+	<file>tests</file>
 	<exclude-pattern>*/vendor/*</exclude-pattern>
 
 	<arg name="extensions" value="php"/>
@@ -24,6 +25,8 @@
 	-->
 	<rule ref="WordPress.Files.FileName.InvalidClassFileName">
 		<exclude-pattern>object-cache\.php</exclude-pattern>
+		<!-- PHPUnit test files are named for what they test (test-replace.php). -->
+		<exclude-pattern>/tests/</exclude-pattern>
 	</rule>
 	<rule ref="Universal.Files.SeparateFunctionsFromOO.Mixed">
 		<exclude-pattern>object-cache\.php</exclude-pattern>
@@ -33,7 +36,20 @@
 	A drop-in has to define WordPress's own object cache API, so its global
 	functions and class are named by core (wp_cache_*, WP_Object_Cache).
 	-->
+	<!--
+	The test tooling is run on the command line, not in a request: it writes to
+	STDERR and prints plain text, not HTML.
+	-->
+	<rule ref="WordPress.WP.AlternativeFunctions">
+		<exclude-pattern>/tests/</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.Security.EscapeOutput">
+		<exclude-pattern>/tests/</exclude-pattern>
+	</rule>
+
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<!-- Test classes are named for what they test, and the bootstrap stubs WordPress functions by their core names. -->
+		<exclude-pattern>/tests/</exclude-pattern>
 		<properties>
 			<property name="prefixes" type="array">
 				<element value="wp_cache"/>
