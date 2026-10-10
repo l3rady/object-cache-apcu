@@ -1289,15 +1289,12 @@ class WP_Object_Cache {
 		$this->blog_prefix = $this->multisite ? $blog_id : 1;
 	}
 
-	// These accessors are public API, so renaming them to snake_case would be a breaking change.
-	// phpcs:disable WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid
-
 	/**
 	 * Gets the MD5 hash of the installation ABSPATH.
 	 *
 	 * @return string
 	 */
-	public function getAbsPath() {
+	public function get_abs_path() {
 		return $this->abs_path;
 	}
 
@@ -1306,7 +1303,7 @@ class WP_Object_Cache {
 	 *
 	 * @return bool
 	 */
-	public function getApcuAvailable() {
+	public function get_apcu_available() {
 		return $this->apcu_available;
 	}
 
@@ -1315,7 +1312,7 @@ class WP_Object_Cache {
 	 *
 	 * @return int
 	 */
-	public function getBlogPrefix() {
+	public function get_blog_prefix() {
 		return $this->blog_prefix;
 	}
 
@@ -1324,7 +1321,7 @@ class WP_Object_Cache {
 	 *
 	 * @return int
 	 */
-	public function getCacheHits() {
+	public function get_cache_hits() {
 		return $this->cache_hits;
 	}
 
@@ -1333,7 +1330,7 @@ class WP_Object_Cache {
 	 *
 	 * @return int
 	 */
-	public function getCacheMisses() {
+	public function get_cache_misses() {
 		return $this->cache_misses;
 	}
 
@@ -1342,7 +1339,7 @@ class WP_Object_Cache {
 	 *
 	 * @return array
 	 */
-	public function getGlobalGroups() {
+	public function get_global_groups() {
 		return $this->global_groups;
 	}
 
@@ -1351,7 +1348,7 @@ class WP_Object_Cache {
 	 *
 	 * @return array
 	 */
-	public function getGroupVersions() {
+	public function get_group_versions() {
 		return $this->group_versions;
 	}
 
@@ -1360,7 +1357,7 @@ class WP_Object_Cache {
 	 *
 	 * @return bool
 	 */
-	public function getMultiSite() {
+	public function get_multisite() {
 		return $this->multisite;
 	}
 
@@ -1369,7 +1366,7 @@ class WP_Object_Cache {
 	 *
 	 * @return array
 	 */
-	public function getNonPersistentCache() {
+	public function get_non_persistent_cache() {
 		return $this->non_persistent_cache;
 	}
 
@@ -1378,7 +1375,7 @@ class WP_Object_Cache {
 	 *
 	 * @return array
 	 */
-	public function getNonPersistentGroups() {
+	public function get_non_persistent_groups() {
 		return $this->non_persistent_groups;
 	}
 
@@ -1387,9 +1384,7 @@ class WP_Object_Cache {
 	 *
 	 * @return array
 	 */
-	public function getSiteVersions() {
+	public function get_site_versions() {
 		return $this->site_versions;
 	}
-
-	// phpcs:enable WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid
 }
