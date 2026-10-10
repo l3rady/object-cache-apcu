@@ -198,7 +198,7 @@ function wp_cache_incr($key, $offset = 1, $group = 'default')
  */
 function wp_cache_init()
 {
-    $GLOBALS['wp_object_cache'] = WP_Object_Cache::instance();
+    $GLOBALS['wp_object_cache'] = new WP_Object_Cache();
 }
 
 
@@ -425,58 +425,62 @@ class WP_Object_Cache
      */
     private $_siteVersions = [];
 
-    private static $_instance;
+    /**
+     * @var string Salt prepended to every key (WP_APCU_KEY_SALT)
+     */
+    private $_keySalt;
 
     /**
-     * Singleton. Return instance of WP_Object_Cache
+     * @var bool Whether the in-request array cache is used (WP_APCU_LOCAL_CACHE)
+     */
+    private $_localCacheEnabled;
+
+    /**
+     * Return the global object cache, creating it if wp_cache_init() has not run yet.
+     *
+     * The cache lives in the $wp_object_cache global, exactly as with core's
+     * WP_Object_Cache, so replacing the global (or calling wp_cache_init() again)
+     * replaces the cache used by the wp_cache_*() functions.
      *
      * @return WP_Object_Cache
      */
     public static function instance()
     {
-        if (self::$_instance === null) {
-            self::$_instance = new WP_Object_Cache();
+        global $wp_object_cache;
+
+        if (!$wp_object_cache instanceof self) {
+            $wp_object_cache = new self();
         }
 
-        return self::$_instance;
+        return $wp_object_cache;
     }
 
     /**
-     * __clone not allowed
+     * Sets up a new object cache. Configuration is read from constants but,
+     * unlike earlier versions, the constants are no longer defined as a side effect.
      */
-    private function __clone()
-    {
-    }
-
-    /**
-     * Direct access to __construct not allowed.
-     */
-    private function __construct()
+    public function __construct()
     {
         global $blog_id;
 
-        if (!defined('WP_APCU_KEY_SALT')) {
-            /**
-             * Set in config if you are using some sort of shared
-             * config where ABSPATH is the same on all sites
-             */
-            define('WP_APCU_KEY_SALT', 'wp');
-        }
+        /**
+         * define('WP_APCU_KEY_SALT', '...') in config if you are using some sort
+         * of shared config where ABSPATH is the same on all sites
+         */
+        $this->_keySalt = defined('WP_APCU_KEY_SALT') ? WP_APCU_KEY_SALT : 'wp';
 
         /**
          * define('WP_APCU_LOCAL_CACHE', false) to disable local
          * array cache and force all cache to be returned from APCu
          */
-        if (!defined('WP_APCU_LOCAL_CACHE')) {
-            define('WP_APCU_LOCAL_CACHE', true);
-        }
+        $this->_localCacheEnabled = defined('WP_APCU_LOCAL_CACHE') ? (bool)WP_APCU_LOCAL_CACHE : true;
 
         $this->_absPath = md5(ABSPATH);
         $this->_apcuAvailable = (extension_loaded('apcu') && ini_get('apc.enabled'));
         $this->_multiSite = is_multisite();
         $this->_blogPrefix = $this->_multiSite ? $blog_id : 1;
     }
-    
+
     public function stats()
     {
         echo '<p>';
@@ -549,7 +553,7 @@ class WP_Object_Cache
     private function _add($key, $var, $ttl)
     {
         if (apcu_add($key, $var, max((int)$ttl, 0))) {
-            if (WP_APCU_LOCAL_CACHE) {
+            if ($this->_localCacheEnabled) {
                 $this->_localCache[$key] = is_object($var) ? clone $var : $var;
             }
             return true;
@@ -634,7 +638,7 @@ class WP_Object_Cache
         }
 
         $value = apcu_dec($key, max((int)$offset, 0));
-        if ($value !== false && WP_APCU_LOCAL_CACHE) {
+        if ($value !== false && $this->_localCacheEnabled) {
             $this->_localCache[$key] = $value;
         }
         return $value;
@@ -759,7 +763,7 @@ class WP_Object_Cache
     {
         $this->_nonPersistentCache = [];
 
-        if (WP_APCU_LOCAL_CACHE) {
+        if ($this->_localCacheEnabled) {
             $this->_localCache = [];
         }
 
@@ -779,7 +783,7 @@ class WP_Object_Cache
     {
         $this->_nonPersistentCache = [];
 
-        if (WP_APCU_LOCAL_CACHE) {
+        if ($this->_localCacheEnabled) {
             $this->_localCache = [];
         } elseif ($this->_apcuAvailable) {
             apcu_clear_cache();
@@ -885,13 +889,13 @@ class WP_Object_Cache
      */
     private function _get($key, &$success = null)
     {
-        if (WP_APCU_LOCAL_CACHE && array_key_exists($key, $this->_localCache)
+        if ($this->_localCacheEnabled && array_key_exists($key, $this->_localCache)
         ) {
             $success = true;
             $var = $this->_localCache[$key];
         } else {
             $var = apcu_fetch($key, $success);
-            if ($success && WP_APCU_LOCAL_CACHE) {
+            if ($success && $this->_localCacheEnabled) {
                 $this->_localCache[$key] = $var;
             }
         }
@@ -952,7 +956,7 @@ class WP_Object_Cache
      */
     private function _get_cache_version_key($type, $value)
     {
-        return WP_APCU_KEY_SALT . ':' . $this->_absPath . ':' . $type . ':' . $value;
+        return $this->_keySalt . ':' . $this->_absPath . ':' . $type . ':' . $value;
     }
 
     /**
@@ -1056,7 +1060,7 @@ class WP_Object_Cache
         }
 
         $value = apcu_inc($key, max((int)$offset, 0));
-        if ($value !== false && WP_APCU_LOCAL_CACHE) {
+        if ($value !== false && $this->_localCacheEnabled) {
             $this->_localCache[$key] = $value;
         }
         return $value;
@@ -1119,7 +1123,7 @@ class WP_Object_Cache
         $group_version = $this->_get_group_cache_version($group);
         $site_version = $this->_get_site_cache_version($prefix);
 
-        return WP_APCU_KEY_SALT . ':' . $this->_absPath . ':' . $prefix . ':' . $group . ':' . $key . ':v' . $site_version . '.' . $group_version;
+        return $this->_keySalt . ':' . $this->_absPath . ':' . $prefix . ':' . $group . ':' . $key . ':v' . $site_version . '.' . $group_version;
     }
 
     /**
@@ -1236,7 +1240,7 @@ class WP_Object_Cache
         }
 
         if (apcu_store($key, $var, max((int)$ttl, 0))) {
-            if (WP_APCU_LOCAL_CACHE) {
+            if ($this->_localCacheEnabled) {
                 $this->_localCache[$key] = $var;
             }
             return true;
