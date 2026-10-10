@@ -1,0 +1,86 @@
+name: object-cache-apcu
+
+x-dev: &dev
+  build: &dev-build
+    context: .
+    dockerfile: docker/Dockerfile
+    target: dev
+    args: &dev-args
+      PHP_VERSION: ${PHP_VERSION:-8.3}
+      PHP_VARIANT: cli
+      HOST_UID: ${HOST_UID:-1000}
+      HOST_GID: ${HOST_GID:-1000}
+  image: object-cache-apcu:php${PHP_VERSION:-8.3}-cli
+  working_dir: /app
+  volumes:
+    - .:/app
+    - composer-cache:/home/dev/.composer/cache
+
+services:
+  # PHP CLI with APCu: unit tests, linting, static analysis.
+  php:
+    <<: *dev
+
+  # Composer helper: `docker compose run --rm composer require ...`
+  composer:
+    <<: *dev
+    entrypoint: ["composer"]
+
+  # php-fpm flavour, to exercise APCu under FPM vs CLI (separate shared memory).
+  fpm:
+    build:
+      <<: *dev-build
+      args:
+        <<: *dev-args
+        PHP_VARIANT: fpm
+    image: object-cache-apcu:php${PHP_VERSION:-8.3}-fpm
+    working_dir: /app
+    volumes:
+      - .:/app
+
+  # CLI with pcov for coverage reports.
+  coverage:
+    build:
+      <<: *dev-build
+      target: coverage
+    image: object-cache-apcu:php${PHP_VERSION:-8.3}-coverage
+    working_dir: /app
+    volumes:
+      - .:/app
+      - composer-cache:/home/dev/.composer/cache
+
+  db:
+    image: mariadb:11
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: wordpress_test
+    # Throwaway test data: keep it in memory.
+    tmpfs:
+      - /var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+
+  # WordPress's own PHPUnit suite with this drop-in installed as
+  # wp-content/object-cache.php (mounted read-only).
+  wp-tests:
+    build:
+      <<: *dev-build
+      target: wp-tests
+      args:
+        PHP_VERSION: ${PHP_VERSION:-8.3}
+        PHP_VARIANT: cli
+        WP_VERSION: ${WP_VERSION:-7.1.3}
+    image: object-cache-apcu:php${PHP_VERSION:-8.3}-wp${WP_VERSION:-7.1.3}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./object-cache.php:/opt/wordpress-develop/src/wp-content/object-cache.php:ro
+    environment:
+      WP_DB_HOST: db
+
+volumes:
+  composer-cache:

@@ -1,0 +1,5 @@
+.git
+.github
+vendor
+node_modules
+*.md

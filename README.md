@@ -34,6 +34,20 @@ Once the composer-dropin-installer is installed and configured in your project y
 
 Define `WP_APCU_KEY_SALT` to something that is unique for each install (like an md5 of the MySQL host, database, and table prefix).
 
+## Development ##
+Everything runs in Docker, so the only host requirements are `docker` and `docker compose`. No local PHP is needed.
+
+```
+make smoke                        # build the image and sanity-check PHP, APCu, mysqli and the drop-in
+make smoke PHP_VERSION=7.4        # any PHP from 7.4 to 8.5 (default 8.3)
+make matrix                       # smoke test every supported PHP version
+make test-core                    # WordPress core's own cache tests against the drop-in (WP_VERSION, default 7.1.3)
+make shell                        # shell in the PHP container
+make composer ARGS="install"      # run composer in the container
+```
+
+The images are defined in `docker/Dockerfile` (`dev`, `coverage` and `wp-tests` targets, with an `fpm` flavour via `PHP_VARIANT`) and wired together in `docker-compose.yml`.
+
 ## Changelog ##
 ### 1.2 ###
 + Add composer file and add dropin plugin to packagist.org for easy installation via composer.
