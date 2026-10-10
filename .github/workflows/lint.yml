@@ -1,0 +1,19 @@
+name: lint
+
+# WordPress Coding Standards, run in the same Docker setup used locally.
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  phpcs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Lint (phpcs, WordPress Coding Standards)
+        run: make lint

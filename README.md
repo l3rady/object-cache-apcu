@@ -44,7 +44,11 @@ make matrix                       # smoke test every supported PHP version
 make test-core                    # WordPress core's own cache tests against the drop-in (WP_VERSION, default 7.1.3)
 make shell                        # shell in the PHP container
 make composer ARGS="install"      # run composer in the container
+make lint                         # check WordPress Coding Standards (phpcs); must pass with no errors or warnings
+make fix                          # auto-fix what phpcbf can
 ```
+
+Code must follow the [WordPress Coding Standards](https://developer.wordpress.org/coding-standards/wordpress-coding-standards/php/) (tabs, `array()`, Yoda conditions, snake_case) and stay compatible with PHP 7.4+. The rules live in `phpcs.xml.dist`; any exclusion needs a reason there. `make lint` also runs in CI.
 
 The images are defined in `docker/Dockerfile` (`dev`, `coverage` and `wp-tests` targets, with an `fpm` flavour via `PHP_VARIANT`) and wired together in `docker-compose.yml`.
 
