@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<ruleset name="object-cache-apcu" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/squizlabs/PHP_CodeSniffer/master/phpcs.xsd">
+	<description>WordPress Coding Standards for the APCu object cache drop-in. Run with `make lint` / `make fix`.</description>
+
+	<file>object-cache.php</file>
+	<exclude-pattern>*/vendor/*</exclude-pattern>
+
+	<arg name="extensions" value="php"/>
+	<arg name="colors"/>
+	<arg value="sp"/>
+	<arg name="parallel" value="8"/>
+
+	<!-- Lowest PHP and WordPress versions supported (WordPress 7.x requires PHP 7.4). -->
+	<config name="testVersion" value="7.4-"/>
+	<config name="minimum_wp_version" value="5.6"/>
+
+	<rule ref="WordPress"/>
+	<rule ref="PHPCompatibilityWP"/>
+
+	<!--
+	A drop-in has to define WordPress's own object cache API, so its global
+	functions and class are named by core (wp_cache_*, WP_Object_Cache).
+	-->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="wp_cache"/>
+				<element value="wp_object_cache"/>
+			</property>
+		</properties>
+	</rule>
+</ruleset>

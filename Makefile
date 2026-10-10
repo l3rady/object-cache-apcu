@@ -16,7 +16,7 @@ export HOST_GID := $(shell id -g)
 COMPOSE := docker compose
 
 .DEFAULT_GOAL := help
-.PHONY: help build shell composer smoke test-core matrix clean
+.PHONY: help build shell composer deps lint fix smoke test-core matrix clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "} {printf "  %-12s %s\n", $$1, $$2}'
@@ -29,6 +29,18 @@ shell: ## Open a shell in the PHP container
 
 composer: ## Run composer, e.g. make composer ARGS="require --dev foo/bar"
 	$(COMPOSE) run --rm composer $(ARGS)
+
+vendor/autoload.php: composer.json composer.lock
+	$(COMPOSE) run --rm composer install --no-interaction --no-progress
+	@touch $@
+
+deps: vendor/autoload.php ## Install Composer dev dependencies (phpcs, WPCS)
+
+lint: deps ## Check WordPress Coding Standards (fails on errors and warnings)
+	$(COMPOSE) run --build --rm php vendor/bin/phpcs
+
+fix: deps ## Auto-fix coding standard violations with phpcbf
+	$(COMPOSE) run --build --rm php sh -c 'vendor/bin/phpcbf; s=$$?; [ $$s -le 1 ]'
 
 smoke: ## Verify PHP, APCu, mysqli and that object-cache.php lints
 	$(COMPOSE) run --build --rm php sh docker/smoke.sh
