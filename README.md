@@ -38,19 +38,31 @@ Define `WP_APCU_KEY_SALT` to something that is unique for each install (like an 
 Everything runs in Docker, so the only host requirements are `docker` and `docker compose`. No local PHP is needed.
 
 ```
+make test                         # every test layer below
+make test-apcu                    # plain APCu tests (PHPUnit, no WordPress), PHP_VERSION=7.4 to 8.5
+make test-wp                      # our WordPress-based tests, single site (real WordPress + database)
+make test-wp-ms                   # the same, as multisite
+make test-core                    # WordPress core's own tests (cache, option, meta, taxonomy, user, comment, post)
+make test-known-bugs              # tests that document open bugs; they are expected to fail
+make coverage                     # coverage report for the plain APCu tests (pcov)
+make matrix                       # smoke test + plain APCu tests on every supported PHP version
 make smoke                        # build the image and sanity-check PHP, APCu, mysqli and the drop-in
-make smoke PHP_VERSION=7.4        # any PHP from 7.4 to 8.5 (default 8.3)
-make matrix                       # smoke test every supported PHP version
-make test-core                    # WordPress core's own cache tests against the drop-in (WP_VERSION, default 7.1.3)
-make shell                        # shell in the PHP container
-make composer ARGS="install"      # run composer in the container
 make lint                         # check WordPress Coding Standards (phpcs); must pass with no errors or warnings
 make fix                          # auto-fix what phpcbf can
+make shell                        # shell in the PHP container
+make composer ARGS="install"      # run composer in the container
 ```
 
 Code must follow the [WordPress Coding Standards](https://developer.wordpress.org/coding-standards/wordpress-coding-standards/php/) (tabs, `array()`, Yoda conditions, snake_case) and stay compatible with PHP 7.4+. The rules live in `phpcs.xml.dist`; any exclusion needs a reason there. `make lint` also runs in CI.
 
 The images are defined in `docker/Dockerfile` (`dev`, `coverage` and `wp-tests` targets, with an `fpm` flavour via `PHP_VARIANT`) and wired together in `docker-compose.yml`.
+
+### Tests ###
+There are three layers, all in Docker:
+
+1. **Plain APCu tests** (`tests/apcu`, `make test-apcu`): PHPUnit against the drop-in with a few WordPress functions stubbed. Fast; this is where each bug fix gets its regression test. Tests tagged `@group known-bug` document a bug that is still open: they are skipped normally and fail on purpose under `make test-known-bugs`. The pull request that fixes the bug removes the tag.
+2. **WordPress tests** (`tests/wp`, `make test-wp` and `make test-wp-ms`): the drop-in installed as `wp-content/object-cache.php` in a real WordPress with a database, run with core's own test bootstrap (`WP_UnitTestCase`). Includes a multisite test and a check that the drop-in really is the cache in use.
+3. **Core conformance** (`make test-core`): WordPress core's own test groups that depend on the cache, run against the drop-in. Failures that are expected are listed with a reason in `tests/conformance/known-failures.txt`. The run fails on any failure that is not listed, and also on a listed test that now passes, so the list cannot go stale. `WP_VERSION` (default 7.1.3) and `CORE_GROUPS` choose the WordPress version and groups.
 
 ### Commits and releases ###
 Commits follow [Conventional Commits](https://www.conventionalcommits.org/) and drive the version number, but **merging to `main` never changes the version**. [release-please](https://github.com/googleapis/release-please) keeps a "Release PR" open that collects the next version, the `CHANGELOG.md` entry and the version bumps in `object-cache.php` and this README. **Merging that PR cuts the release** (a `vX.Y.Z` tag and GitHub release, which Packagist picks up).
