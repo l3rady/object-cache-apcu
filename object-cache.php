@@ -1266,6 +1266,9 @@ class WP_Object_Cache {
 	 */
 	private function set_group_cache_version( $group, $version ) {
 		$this->set_cache_version( $this->get_cache_version_key( 'GroupVersion', $group ), $version );
+
+		// Keys built for the rest of this request must use the new version too.
+		$this->group_versions[ $group ] = $version;
 	}
 
 	/**
@@ -1276,6 +1279,9 @@ class WP_Object_Cache {
 	 */
 	private function set_site_cache_version( $site, $version ) {
 		$this->set_cache_version( $this->get_cache_version_key( 'SiteVersion', $site ), $version );
+
+		// Keys built for the rest of this request must use the new version too.
+		$this->site_versions[ $site ] = $version;
 	}
 
 	/**
