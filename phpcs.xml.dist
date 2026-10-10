@@ -18,6 +18,18 @@
 	<rule ref="PHPCompatibilityWP"/>
 
 	<!--
+	WordPress loads the drop-in by its fixed name, wp-content/object-cache.php,
+	and it has to declare both core's wp_cache_* functions and WP_Object_Cache
+	in that one file.
+	-->
+	<rule ref="WordPress.Files.FileName.InvalidClassFileName">
+		<exclude-pattern>object-cache\.php</exclude-pattern>
+	</rule>
+	<rule ref="Universal.Files.SeparateFunctionsFromOO.Mixed">
+		<exclude-pattern>object-cache\.php</exclude-pattern>
+	</rule>
+
+	<!--
 	A drop-in has to define WordPress's own object cache API, so its global
 	functions and class are named by core (wp_cache_*, WP_Object_Cache).
 	-->
