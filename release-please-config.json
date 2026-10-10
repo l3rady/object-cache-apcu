@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "last-release-sha": "7fb76984ea8de6ef42feeb4a7cc33471d4ffd8d2",
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "package-name": "object-cache-apcu",
+      "include-component-in-tag": false,
+      "include-v-in-tag": true,
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        "object-cache.php",
+        "README.md"
+      ]
+    }
+  }
+}

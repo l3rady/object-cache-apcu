@@ -3,7 +3,7 @@ Contributors: l3rady
 Tags: APCu, object cache, backend, cache, performance, speed  
 Requires at least: 5.6  
 Tested up to: 6.5.3  
-Stable tag: 1.2
+Stable tag: 1.2.0 <!-- x-release-please-version -->
 
 WordPress APCu Object Cache Backend provides a persistent memory-based backend for the WordPress object cache.
 
@@ -48,14 +48,17 @@ make composer ARGS="install"      # run composer in the container
 
 The images are defined in `docker/Dockerfile` (`dev`, `coverage` and `wp-tests` targets, with an `fpm` flavour via `PHP_VARIANT`) and wired together in `docker-compose.yml`.
 
+### Commits and releases ###
+Commits follow [Conventional Commits](https://www.conventionalcommits.org/) and drive the version number, but **merging to `main` never changes the version**. [release-please](https://github.com/googleapis/release-please) keeps a "Release PR" open that collects the next version, the `CHANGELOG.md` entry and the version bumps in `object-cache.php` and this README. **Merging that PR cuts the release** (a `vX.Y.Z` tag and GitHub release, which Packagist picks up).
+
+| Commit | Release |
+|---|---|
+| `fix:` | patch |
+| `feat:` | minor |
+| `feat!:` / `refactor!:` or a `BREAKING CHANGE:` footer | major |
+| `docs:`, `chore:`, `build:`, `ci:`, `test:`, `style:` | none on their own |
+
+To force a specific version, add a `Release-As: X.Y.Z` footer to a commit on `main`.
+
 ## Changelog ##
-### 1.2 ###
-+ Add composer file and add dropin plugin to packagist.org for easy installation via composer.
-+ Add latest cache methods added to core recentlys
-### 1.1 ###
-+ Add local array cache to reduce APCu calls for repeated requests to same keys during page load. Props to [rob006](https://github.com/rob006)
-+ Add `WP_APCU_LOCAL_CACHE` define to disable local cache for edge cases where local cache can cause memory exhaustion issues
-### 1.0.1 ###
-+ Make `$cache_hits` and `$cache_misses` public params for stats plugins to access
-### 1.0 ###
-+ Initial release, forked from [WordPress-APC-Object-Cache](https://github.com/l3rady/WordPress-APC-Object-Cache)
+See [CHANGELOG.md](CHANGELOG.md).
