@@ -66,6 +66,24 @@ abstract class APCu_Test_Case extends TestCase {
 	}
 
 	/**
+	 * Calls a private method.
+	 *
+	 * @param object $instance Object to call the method on.
+	 * @param string $method   Method name.
+	 * @param array  $args     Arguments.
+	 * @return mixed
+	 */
+	protected function call_private( $instance, $method, array $args = array() ) {
+		$reflection = new ReflectionMethod( $instance, $method );
+		if ( PHP_VERSION_ID < 80100 ) {
+			// Needed before PHP 8.1; deprecated (and a no-op) after.
+			$reflection->setAccessible( true );
+		}
+
+		return $reflection->invokeArgs( $instance, $args );
+	}
+
+	/**
 	 * Writes a private property.
 	 *
 	 * @param object $instance Object to modify.
