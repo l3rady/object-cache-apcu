@@ -1159,7 +1159,7 @@ class WP_Object_Cache
     private function _replace($key, $var, $ttl)
     {
         $this->_get($key, $success);
-        if ($success) {
+        if (!$success) {
             return false;
         }
 
