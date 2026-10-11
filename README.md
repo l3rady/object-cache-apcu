@@ -4,7 +4,7 @@ Tags: APCu, object cache, backend, cache, performance, speed
 Requires at least: 7.1  
 Requires PHP: 7.4  
 Tested up to: 7.1.3  
-Stable tag: 1.2.0 <!-- x-release-please-version -->
+Stable tag: 2.0.0 <!-- x-release-please-version -->
 
 [![lint](https://github.com/l3rady/object-cache-apcu/actions/workflows/lint.yml/badge.svg)](https://github.com/l3rady/object-cache-apcu/actions/workflows/lint.yml) [![ci](https://github.com/l3rady/object-cache-apcu/actions/workflows/ci.yml/badge.svg)](https://github.com/l3rady/object-cache-apcu/actions/workflows/ci.yml) [![License: GPL v2+](https://img.shields.io/badge/license-GPL--2.0--or--later-blue.svg)](LICENSE)
 
