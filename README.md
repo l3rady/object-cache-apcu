@@ -38,7 +38,16 @@ Once the composer-dropin-installer is installed and configured in your project y
 ## Frequently Asked Questions ##
 ### I share `wp-config.php` among multiple WordPress installs. How can I guarantee key uniqueness? ###
 
-Define `WP_APCU_KEY_SALT` to something that is unique for each install (like an md5 of the MySQL host, database, and table prefix).
+Every key starts with a salt and a hash of `ABSPATH`. Installs that have the same `ABSPATH` and share APCu (cloned containers, blue/green deploys, several sites in one PHP-FPM pool) must have different salts. The salt is the first of these that is set:
+
+1. `WP_APCU_KEY_SALT`
+2. `WP_CACHE_KEY_SALT`, the constant many hosts and other object caches use
+3. a hash of `DB_NAME` and the table prefix, which is already different for most installs
+4. `wp`, only if WordPress provides none of the above
+
+If you share one `wp-config.php` and the same database between installs, define `WP_APCU_KEY_SALT` yourself. Empty values are ignored.
+
+Changing the salt (including upgrading from a version before 2.0, which used `wp` when nothing was defined) starts a new, empty cache: old entries are never read again and are removed by APCu when they expire or space is needed.
 
 ## Development ##
 Everything runs in Docker, so the only host requirements are `docker` and `docker compose`. No local PHP is needed.
