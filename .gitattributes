@@ -1,4 +1,5 @@
 # Keep Composer/GitHub dist archives to the drop-in and its documentation.
+/bin                     export-ignore
 /.claude                  export-ignore
 /.dockerignore            export-ignore
 /.gitattributes           export-ignore
