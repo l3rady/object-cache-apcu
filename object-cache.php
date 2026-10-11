@@ -661,13 +661,17 @@ class WP_Object_Cache {
 	 *                true on success, or false if cache key and group already exist.
 	 */
 	public function add_multiple( array $data, $group = 'default', $ttl = 0 ) {
-		$values = array();
+		if ( ! $this->apcu_available || $this->is_non_persistent_group( $group ) ) {
+			$values = array();
 
-		foreach ( $data as $key => $value ) {
-			$values[ $key ] = $this->add( $key, $value, $group, $ttl );
+			foreach ( $data as $key => $value ) {
+				$values[ $key ] = $this->add( $key, $value, $group, $ttl );
+			}
+
+			return $values;
 		}
 
-		return $values;
+		return $this->store_multiple( $data, $group, $ttl, true );
 	}
 
 	/**
@@ -814,12 +818,36 @@ class WP_Object_Cache {
 	public function delete_multiple( array $keys, $group = 'default' ) {
 		$values = array();
 
-		foreach ( $keys as $key ) {
-			$deleted = $this->delete( $key, $group );
+		if ( ! $this->apcu_available || $this->is_non_persistent_group( $group ) ) {
+			foreach ( $keys as $key ) {
+				$deleted = $this->delete( $key, $group );
 
-			// An invalid key was reported by delete() and cannot be an array key.
-			if ( is_int( $key ) || is_string( $key ) ) {
-				$values[ $key ] = $deleted;
+				// An invalid key was reported by delete() and cannot be an array key.
+				if ( is_int( $key ) || is_string( $key ) ) {
+					$values[ $key ] = $deleted;
+				}
+			}
+
+			return $values;
+		}
+
+		$owners = array();
+		foreach ( $keys as $key ) {
+			// An invalid key was reported and left out of the result.
+			if ( ! $this->is_valid_key( $key ) ) {
+				continue;
+			}
+
+			$full_key            = $this->build_key( $key, $group );
+			$owners[ $full_key ] = $key;
+			$values[ $key ]      = true;
+			unset( $this->local_cache[ $full_key ] );
+		}
+
+		if ( $owners ) {
+			// Returns a list of the keys that could not be deleted, as they did not exist.
+			foreach ( (array) apcu_delete( array_keys( $owners ) ) as $full_key ) {
+				$values[ $owners[ $full_key ] ] = false;
 			}
 		}
 
@@ -1151,18 +1179,74 @@ class WP_Object_Cache {
 	public function get_multiple( $keys, $group = 'default', $force = false ) {
 		$values = array();
 
-		foreach ( $keys as $key ) {
-			$value = $this->get( $key, $group, $force );
+		if ( ! $this->apcu_available || $this->is_non_persistent_group( $group ) ) {
+			foreach ( $keys as $key ) {
+				$value = $this->get( $key, $group, $force );
 
-			// An invalid key was reported by get() and cannot be an array key.
-			if ( is_int( $key ) || is_string( $key ) ) {
-				$values[ $key ] = $value;
+				// An invalid key was reported by get() and cannot be an array key.
+				if ( is_int( $key ) || is_string( $key ) ) {
+					$values[ $key ] = $value;
+				}
 			}
+
+			return $values;
+		}
+
+		// Keys this request already holds are answered from memory, the rest are
+		// fetched from APCu together.
+		$ordered   = array();
+		$full_keys = array();
+		$hits      = array();
+		$fetch     = array();
+		foreach ( $keys as $key ) {
+			// An invalid key was reported and left out of the result.
+			if ( ! $this->is_valid_key( $key ) ) {
+				continue;
+			}
+
+			$full_key    = $this->build_key( $key, $group );
+			$ordered[]   = $key;
+			$full_keys[] = $full_key;
+
+			if ( ! $force && $this->local_cache_enabled && array_key_exists( $full_key, $this->local_cache ) ) {
+				$hits[ $full_key ] = $this->local_cache[ $full_key ];
+			} else {
+				$fetch[ $full_key ] = true;
+			}
+		}
+
+		if ( $fetch ) {
+			$found = apcu_fetch( array_keys( $fetch ) );
+			$found = is_array( $found ) ? $found : array();
+
+			foreach ( array_keys( $fetch ) as $full_key ) {
+				if ( array_key_exists( $full_key, $found ) ) {
+					$hits[ $full_key ] = $found[ $full_key ];
+					if ( $this->local_cache_enabled ) {
+						$this->local_cache[ $full_key ] = $found[ $full_key ];
+					}
+				} elseif ( $this->local_cache_enabled ) {
+					unset( $this->local_cache[ $full_key ] );
+				}
+			}
+		}
+
+		foreach ( $ordered as $position => $key ) {
+			$full_key = $full_keys[ $position ];
+
+			if ( array_key_exists( $full_key, $hits ) ) {
+				++$this->cache_hits;
+				$value = $hits[ $full_key ];
+			} else {
+				++$this->cache_misses;
+				$value = false;
+			}
+
+			$values[ $key ] = is_object( $value ) ? clone $value : $value;
 		}
 
 		return $values;
 	}
-
 
 	/**
 	 * Get the sites cache version
@@ -1472,10 +1556,69 @@ class WP_Object_Cache {
 	 * @return bool[] Array of return values, grouped by key. Each value is always true.
 	 */
 	public function set_multiple( array $data, $group = 'default', $ttl = 0 ) {
-		$values = array();
+		if ( ! $this->apcu_available || $this->is_non_persistent_group( $group ) ) {
+			$values = array();
 
+			foreach ( $data as $key => $value ) {
+				$values[ $key ] = $this->set( $key, $value, $group, $ttl );
+			}
+
+			return $values;
+		}
+
+		return $this->store_multiple( $data, $group, $ttl, false );
+	}
+
+	/**
+	 * Writes many values to APCu with one call, for add_multiple() and set_multiple().
+	 *
+	 * @param array<string|int, mixed> $data     Array of keys and values.
+	 * @param string                   $group    Where the cache contents are grouped.
+	 * @param int                      $ttl      When to expire the cache contents, in seconds.
+	 * @param bool                     $only_new True to leave keys that already exist alone (add), false to overwrite (set).
+	 * @return bool[] Whether each key was written, in the order given.
+	 */
+	private function store_multiple( array $data, $group, $ttl, bool $only_new ): array {
+		$values = array_fill_keys( array_keys( $data ), false );
+
+		if ( $only_new && function_exists( 'wp_suspend_cache_addition' ) && wp_suspend_cache_addition() ) {
+			return $values;
+		}
+
+		$batch  = array();
+		$owners = array();
 		foreach ( $data as $key => $value ) {
-			$values[ $key ] = $this->set( $key, $value, $group, $ttl );
+			// An invalid key was reported and stays false.
+			if ( ! $this->is_valid_key( $key ) ) {
+				continue;
+			}
+
+			$full_key            = $this->build_key( $key, $group );
+			$batch[ $full_key ]  = is_object( $value ) ? clone $value : $value;
+			$owners[ $full_key ] = $key;
+		}
+
+		if ( ! $batch ) {
+			return $values;
+		}
+
+		// Both return only the keys that were not written, with an error code.
+		$ttl    = max( (int) $ttl, 0 );
+		$failed = $only_new ? apcu_add( $batch, null, $ttl ) : apcu_store( $batch, null, $ttl );
+
+		foreach ( $batch as $full_key => $value ) {
+			if ( isset( $failed[ $full_key ] ) ) {
+				if ( ! $only_new ) {
+					// As set_apcu(): do not keep serving the old value from the local copy.
+					unset( $this->local_cache[ $full_key ] );
+				}
+				continue;
+			}
+
+			$values[ $owners[ $full_key ] ] = true;
+			if ( $this->local_cache_enabled ) {
+				$this->local_cache[ $full_key ] = $value;
+			}
 		}
 
 		return $values;
