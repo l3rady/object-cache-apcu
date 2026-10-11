@@ -22,6 +22,7 @@ abstract class APCu_Test_Case extends TestCase {
 		apcu_clear_cache();
 		unset( $GLOBALS['apcu_test_multisite'], $GLOBALS['apcu_test_suspend_additions'] );
 		$GLOBALS['apcu_test_doing_it_wrong'] = array();
+		$GLOBALS['apcu_test_deprecated']     = array();
 	}
 
 	/**

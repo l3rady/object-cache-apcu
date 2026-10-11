@@ -60,13 +60,15 @@ function _doing_it_wrong( $function_name, $message, $version ) {
 }
 
 /**
- * Stub for _deprecated_function().
+ * Stub for _deprecated_function(): remember the calls so tests can check them.
  *
  * @param string $function_name The function that is deprecated.
  * @param string $version       Version it was deprecated in.
  * @param string $replacement   Replacement to use instead.
  */
-function _deprecated_function( $function_name, $version, $replacement = '' ) {}
+function _deprecated_function( $function_name, $version, $replacement = '' ) {
+	$GLOBALS['apcu_test_deprecated'][] = array( $function_name, $version, $replacement );
+}
 
 require_once dirname( __DIR__, 2 ) . '/object-cache.php';
 
