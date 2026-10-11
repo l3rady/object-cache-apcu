@@ -2,6 +2,14 @@
     "name": "l3rady/object-cache-apcu",
     "description": "APCu backend for WordPress' Object Cache",
     "type": "wordpress-dropin",
+    "keywords": [
+        "wordpress",
+        "object-cache",
+        "apcu",
+        "cache",
+        "drop-in"
+    ],
+    "homepage": "https://github.com/l3rady/object-cache-apcu",
     "license": "GPL-2.0-or-later",
     "authors": [
         {
@@ -9,14 +17,10 @@
             "email": "scott@cariss.dev"
         }
     ],
-    "config": {
-        "allow-plugins": {
-            "dealerdirect/phpcodesniffer-composer-installer": true
-        },
-        "platform": {
-            "php": "7.4.33"
-        },
-        "sort-packages": true
+    "support": {
+        "issues": "https://github.com/l3rady/object-cache-apcu/issues",
+        "source": "https://github.com/l3rady/object-cache-apcu",
+        "security": "https://github.com/l3rady/object-cache-apcu/blob/main/SECURITY.md"
     },
     "require": {
         "php": ">=7.4"
@@ -31,5 +35,29 @@
         "squizlabs/php_codesniffer": "^3.13",
         "szepeviktor/phpstan-wordpress": "^2.0",
         "wp-coding-standards/wpcs": "^3.4"
+    },
+    "suggest": {
+        "ext-apcu": "Required at runtime for persistent caching; without it the cache lives in memory for one request only."
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        },
+        "platform": {
+            "php": "7.4.33"
+        },
+        "sort-packages": true
+    },
+    "scripts": {
+        "lint": "phpcs",
+        "stan": "phpstan analyse --memory-limit=1G",
+        "rector": "rector process --dry-run --no-progress-bar",
+        "test": "phpunit"
+    },
+    "scripts-descriptions": {
+        "lint": "Check the WordPress Coding Standards.",
+        "stan": "Run PHPStan.",
+        "rector": "Show PHP 7.4 syntax upgrades still to do.",
+        "test": "Run the plain APCu tests."
     }
 }
