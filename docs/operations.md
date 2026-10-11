@@ -93,7 +93,7 @@ was meant to be gone.
 - **Non-persistent groups** (`counts`, `plugins`, `theme_json`, and any a plugin
   registers) are kept in the request's memory only and never written to APCu.
 - Sites that share one APCu pool and one `ABSPATH` need different keys; define
-  `WP_APCU_KEY_SALT` (see the README FAQ).
+  `WP_APCU_KEY_SALT` or `WP_CACHE_KEY_SALT` (see the README FAQ).
 
 ## Expiry (TTL)
 

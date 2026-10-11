@@ -460,7 +460,7 @@ class WP_Object_Cache {
 	private array $dynamic_properties = array();
 
 	/**
-	 * Salt prepended to every key (WP_APCU_KEY_SALT).
+	 * Salt prepended to every key (see resolve_key_salt()).
 	 *
 	 * @var string
 	 */
@@ -495,15 +495,48 @@ class WP_Object_Cache {
 	}
 
 	/**
+	 * Works out the salt that keeps this install's keys apart from other installs in the same APCu.
+	 *
+	 * In order: WP_APCU_KEY_SALT, then WP_CACHE_KEY_SALT (the constant most hosts and
+	 * other object caches use), then a hash of the database name and table prefix, and
+	 * only when WordPress does not give those either, 'wp'. An empty value counts as not set.
+	 *
+	 * @param string $apcu_salt  Value of WP_APCU_KEY_SALT, or empty.
+	 * @param string $cache_salt Value of WP_CACHE_KEY_SALT, or empty.
+	 * @param string $db_name    Value of DB_NAME, or empty.
+	 * @param string $prefix     The table prefix.
+	 * @return string
+	 */
+	private static function resolve_key_salt( string $apcu_salt, string $cache_salt, string $db_name, string $prefix ): string {
+		if ( '' !== $apcu_salt ) {
+			return $apcu_salt;
+		}
+
+		if ( '' !== $cache_salt ) {
+			return $cache_salt;
+		}
+
+		if ( '' !== $db_name ) {
+			return md5( $db_name . ':' . $prefix );
+		}
+
+		return 'wp';
+	}
+
+	/**
 	 * Sets up a new object cache. Configuration is read from constants but,
 	 * unlike earlier versions, the constants are no longer defined as a side effect.
 	 */
 	public function __construct() {
 		global $blog_id;
 
-		// Define WP_APCU_KEY_SALT in config if you are using some sort of shared
-		// config where ABSPATH is the same on all sites.
-		$this->key_salt = defined( 'WP_APCU_KEY_SALT' ) ? (string) WP_APCU_KEY_SALT : 'wp';
+		// Installs that share APCu and an ABSPATH need different salts: see resolve_key_salt().
+		$this->key_salt = self::resolve_key_salt(
+			defined( 'WP_APCU_KEY_SALT' ) ? (string) WP_APCU_KEY_SALT : '',
+			defined( 'WP_CACHE_KEY_SALT' ) ? (string) WP_CACHE_KEY_SALT : '',
+			defined( 'DB_NAME' ) ? (string) DB_NAME : '',
+			isset( $GLOBALS['table_prefix'] ) ? (string) $GLOBALS['table_prefix'] : ''
+		);
 
 		// Define WP_APCU_LOCAL_CACHE as false to disable the local array cache
 		// and force all cache to be returned from APCu.
