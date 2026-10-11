@@ -64,6 +64,16 @@ There are three layers, all in Docker:
 2. **WordPress tests** (`tests/wp`, `make test-wp` and `make test-wp-ms`): the drop-in installed as `wp-content/object-cache.php` in a real WordPress with a database, run with core's own test bootstrap (`WP_UnitTestCase`). Includes a multisite test and a check that the drop-in really is the cache in use.
 3. **Core conformance** (`make test-core`): WordPress core's own test groups that depend on the cache, run against the drop-in. Failures that are expected are listed with a reason in `tests/conformance/known-failures.txt`. The run fails on any failure that is not listed, and also on a listed test that now passes, so the list cannot go stale. `WP_VERSION` (default 7.1.3) and `CORE_GROUPS` choose the WordPress version and groups.
 
+### Continuous integration ###
+Every pull request runs, in the same Docker setup (see `.github/workflows`):
+
+- `lint`: the WordPress Coding Standards.
+- `ci` / `phpunit`: the plain APCu tests on every PHP version from 7.4 to 8.5.
+- `ci` / `wordpress`: the WordPress tests (single site and multisite) and core conformance on PHP 7.4 and 8.5, against WordPress 7.1.3.
+- A nightly run of the same WordPress jobs against WordPress `trunk`, to catch core changes early. Run it by hand from the Actions tab and give it a `wp_version` to test any tag or branch.
+
+Dependabot proposes updates to GitHub Actions, the Docker base image and Composer dependencies.
+
 ### Commits and releases ###
 Commits follow [Conventional Commits](https://www.conventionalcommits.org/) and drive the version number, but **merging to `main` never changes the version**. [release-please](https://github.com/googleapis/release-please) keeps a "Release PR" open that collects the next version, the `CHANGELOG.md` entry and the version bumps in `object-cache.php` and this README. **Merging that PR cuts the release** (a `vX.Y.Z` tag and GitHub release, which Packagist picks up).
 

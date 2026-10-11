@@ -1,0 +1,95 @@
+name: ci
+
+# The test layers described in the README, run in the same Docker setup used
+# locally (see the Makefile). Lint lives in lint.yml.
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  # Nightly against WordPress trunk, to notice core changes before a release.
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+    inputs:
+      wp_version:
+        description: 'WordPress version, tag or branch to test against (for example trunk)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # Plain APCu tests (no WordPress) on every supported PHP version.
+  phpunit:
+    if: github.event_name != 'schedule'
+    name: phpunit (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
+    env:
+      PHP_VERSION: ${{ matrix.php }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check PHP and APCu
+        run: make smoke
+      - name: Run the plain APCu tests
+        run: make test-apcu
+
+  # Our WordPress tests (single site and multisite) and WordPress core's own
+  # cache-related tests, run against the drop-in with a real database.
+  wordpress:
+    if: github.event_name != 'schedule'
+    name: wordpress ${{ matrix.suite }} (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.5']
+        suite: [single, multisite, core]
+        include:
+          - suite: single
+            target: test-wp
+          - suite: multisite
+            target: test-wp-ms
+          - suite: core
+            target: test-core
+    env:
+      PHP_VERSION: ${{ matrix.php }}
+      WP_VERSION: ${{ inputs.wp_version || '7.1.3' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Run the tests
+        run: make ${{ matrix.target }}
+
+  # The same against WordPress trunk every night.
+  wordpress-trunk:
+    if: github.event_name == 'schedule'
+    name: wordpress trunk ${{ matrix.suite }} (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.5']
+        suite: [single, multisite, core]
+        include:
+          - suite: single
+            target: test-wp
+          - suite: multisite
+            target: test-wp-ms
+          - suite: core
+            target: test-core
+    env:
+      PHP_VERSION: ${{ matrix.php }}
+      WP_VERSION: trunk
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Run the tests against trunk
+        run: make ${{ matrix.target }}
