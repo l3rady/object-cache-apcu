@@ -1164,7 +1164,9 @@ class WP_Object_Cache {
 	private function get_np( $key, &$success = false ) {
 		if ( array_key_exists( $key, $this->non_persistent_cache ) ) {
 			$success = true;
-			return $this->non_persistent_cache[ $key ];
+			$value   = $this->non_persistent_cache[ $key ];
+
+			return is_object( $value ) ? clone $value : $value;
 		}
 
 		$success = false;
