@@ -20,7 +20,7 @@ COMMITS_FROM ?= origin/main
 COMMITS_TO   ?= HEAD
 
 .DEFAULT_GOAL := help
-.PHONY: help build shell composer deps lint commits fix smoke test test-apcu test-known-bugs coverage test-wp test-wp-ms test-core stan rector rector-fix matrix clean bench
+.PHONY: help build shell composer deps lint commits fix smoke test test-apcu test-known-bugs coverage test-wp test-wp-ms test-core test-composer stan rector rector-fix matrix clean bench
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "} {printf "  %-12s %s\n", $$1, $$2}'
@@ -67,6 +67,9 @@ test-apcu: deps ## Run the plain APCu tests (PHPUnit, no WordPress)
 test-known-bugs: deps ## Run tests that document open bugs (they are expected to fail)
 	$(COMPOSE) run --build --rm php vendor/bin/phpunit --exclude-group none --group known-bug $(ARGS)
 
+test-composer: deps ## Install the dist archive with Composer and check what lands in the content directory
+	$(COMPOSE) run --build --rm php sh docker/composer-install-test.sh
+
 bench: deps ## Time the *_multiple functions against loops of single calls
 	$(COMPOSE) run --build --rm php php tests/bench/multiple.php
 
@@ -82,7 +85,7 @@ test-wp-ms: ## Run our WordPress-based tests as multisite
 test-core: ## Run WordPress core's own tests (cache, options, meta, ...) against the drop-in
 	$(COMPOSE) run --build --rm wp-tests sh /opt/object-cache-apcu/docker/core-tests.sh $(ARGS)
 
-test: test-apcu test-wp test-wp-ms test-core ## Run every test layer
+test: test-apcu test-wp test-wp-ms test-core test-composer ## Run every test layer
 
 matrix: deps ## Smoke test and run the plain APCu tests on every PHP version in MATRIX
 	@for v in $(MATRIX); do \

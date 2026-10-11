@@ -61,6 +61,7 @@ make test-apcu                    # plain APCu tests (PHPUnit, no WordPress), PH
 make test-wp                      # our WordPress-based tests, single site (real WordPress + database)
 make test-wp-ms                   # the same, as multisite
 make test-core                    # WordPress core's own tests (cache, option, meta, taxonomy, user, comment, post)
+make test-composer                # install the dist archive with Composer and check only object-cache.php lands in the content directory
 make test-known-bugs              # tests that document open bugs; they are expected to fail
 make coverage                     # coverage report for the plain APCu tests (pcov)
 make matrix                       # smoke test + plain APCu tests on every supported PHP version
@@ -89,6 +90,7 @@ Every pull request runs, in the same Docker setup (see `.github/workflows`):
 - `ci` / `phpstan` and `ci` / `rector`: static analysis (`make stan`) and a check that no PHP 7.4 syntax upgrade is left undone (`make rector`).
 - `ci` / `phpunit`: the plain APCu tests on every PHP version from 7.4 to 8.5.
 - `ci` / `wordpress`: the WordPress tests (single site and multisite) and core conformance on PHP 7.4 and 8.5, against WordPress 7.1.3.
+- `ci` / `composer`: installs the dist archive with Composer's drop-in installer and checks only `object-cache.php` lands in the content directory (`make test-composer`). Also run nightly.
 - A nightly run of the same WordPress jobs against WordPress `trunk`, to catch core changes early. Run it by hand from the Actions tab and give it a `wp_version` to test any tag or branch.
 
 Dependabot proposes updates to GitHub Actions, the Docker base image and Composer dependencies.
