@@ -486,8 +486,11 @@ class WP_Object_Cache {
 		// and force all cache to be returned from APCu.
 		$this->local_cache_enabled = defined( 'WP_APCU_LOCAL_CACHE' ) ? (bool) WP_APCU_LOCAL_CACHE : true;
 
-		$this->abs_path       = md5( ABSPATH );
-		$this->apcu_available = ( extension_loaded( 'apcu' ) && ini_get( 'apc.enabled' ) );
+		$this->abs_path = md5( ABSPATH );
+
+		// apc.enabled can be on while APCu has switched itself off, for example in the
+		// CLI without apc.enable_cli, so ask APCu itself when it can tell us.
+		$this->apcu_available = extension_loaded( 'apcu' ) && ( function_exists( 'apcu_enabled' ) ? apcu_enabled() : (bool) ini_get( 'apc.enabled' ) );
 		$this->multisite      = is_multisite();
 		$this->blog_prefix    = $this->multisite ? $blog_id : 1;
 	}
@@ -1444,6 +1447,10 @@ class WP_Object_Cache {
 			}
 			return true;
 		}
+
+		// APCu is full or refused the write. Do not keep serving the old value from
+		// the local copy: the next read must ask APCu, which has the real state.
+		unset( $this->local_cache[ $key ] );
 
 		return false;
 	}
