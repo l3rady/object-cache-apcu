@@ -1,4 +1,10 @@
-# Keep Composer/GitHub dist archives to the drop-in and its documentation.
+# Keep Composer/GitHub dist archives to the drop-in and the files Composer
+# installers skip by default (README, LICENSE, CHANGELOG, composer.json).
+# koodimonni/composer-dropin-installer copies every other file in the archive into
+# wp-content, so nothing else may be added here without being export-ignored.
+/CONTRIBUTING.md          export-ignore
+/SECURITY.md              export-ignore
+/docs                     export-ignore
 /bin                     export-ignore
 /commitlint.config.js export-ignore
 /.claude                  export-ignore
