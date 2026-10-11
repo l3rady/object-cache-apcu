@@ -313,7 +313,7 @@ function wp_cache_flush_site( $sites = null ) {
  * @return bool
  */
 function wp_cache_flush_group( $groups = 'default' ) {
-	return WP_Object_Cache::instance()->flush_groups( $groups );
+	return WP_Object_Cache::instance()->flush_group( $groups );
 }
 
 
@@ -360,6 +360,13 @@ class WP_Object_Cache {
 	 * @var int
 	 */
 	private const MAX_CAS_ATTEMPTS = 10;
+
+	/**
+	 * Properties that were public on core's cache, answered by __get().
+	 *
+	 * @var string[]
+	 */
+	private const LEGACY_PROPERTIES = array( 'cache', 'global_groups', 'blog_prefix', 'multisite' );
 
 	/**
 	 * MD5 hash of the current installation ABSPATH.
@@ -444,6 +451,13 @@ class WP_Object_Cache {
 	 * @var array<string|int, string|int>
 	 */
 	private array $site_versions = array();
+
+	/**
+	 * Properties set from outside under names this class does not use, as core allows.
+	 *
+	 * @var array<string, mixed>
+	 */
+	private array $dynamic_properties = array();
 
 	/**
 	 * Salt prepended to every key (WP_APCU_KEY_SALT).
@@ -531,33 +545,11 @@ class WP_Object_Cache {
 	/**
 	 * Sizes the groups held in this request's memory.
 	 *
-	 * Entries are stored under their full key, so the group is found by matching
-	 * the key against the groups used so far in this request. If one group name
-	 * is the start of another's, the longest match wins.
-	 *
 	 * @return int[] Serialized size in bytes, by group name, sorted by name.
 	 */
 	private function get_group_sizes(): array {
-		$groups = array_keys( $this->group_versions );
-		usort(
-			$groups,
-			static fn( $a, $b ) => strlen( $b ) - strlen( $a )
-		);
-
-		$entries = array();
-		foreach ( array( $this->local_cache, $this->non_persistent_cache ) as $cache ) {
-			foreach ( $cache as $key => $value ) {
-				foreach ( $groups as $group ) {
-					if ( 1 === preg_match( '/^' . preg_quote( $this->key_salt . ':' . $this->abs_path, '/' ) . ':\d+:' . preg_quote( $group, '/' ) . ':/', (string) $key ) ) {
-						$entries[ $group ][ $key ] = $value;
-						continue 2;
-					}
-				}
-			}
-		}
-
 		$sizes = array();
-		foreach ( $entries as $group => $values ) {
+		foreach ( $this->get_grouped_cache() as $group => $values ) {
 			// Mirrors WP_Object_Cache::stats(), which sizes each group by serializing it.
 			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize
 			$sizes[ $group ] = strlen( serialize( $values ) );
@@ -565,6 +557,39 @@ class WP_Object_Cache {
 		ksort( $sizes );
 
 		return $sizes;
+	}
+
+	/**
+	 * Arranges what this request holds in memory (the local cache and the non
+	 * persistent groups) by group and key, the shape of core's `$cache` property.
+	 *
+	 * Entries are stored under their full key, so the group is found by matching
+	 * the key against the groups used so far in this request. If one group name
+	 * is the start of another's, the longest match wins.
+	 *
+	 * @return array<string, array<int|string, mixed>> Values by key, by group name.
+	 */
+	private function get_grouped_cache(): array {
+		$groups = array_keys( $this->group_versions );
+		usort(
+			$groups,
+			static fn( $a, $b ) => strlen( $b ) - strlen( $a )
+		);
+
+		$base    = preg_quote( $this->key_salt . ':' . $this->abs_path, '/' );
+		$entries = array();
+		foreach ( array( $this->local_cache, $this->non_persistent_cache ) as $cache ) {
+			foreach ( $cache as $key => $value ) {
+				foreach ( $groups as $group ) {
+					if ( 1 === preg_match( '/^' . $base . ':\d+:' . preg_quote( $group, '/' ) . ':(.*):v[^:]*$/s', (string) $key, $match ) ) {
+						$entries[ $group ][ $match[1] ] = $value;
+						continue 2;
+					}
+				}
+			}
+		}
+
+		return $entries;
 	}
 
 	/**
@@ -881,13 +906,15 @@ class WP_Object_Cache {
 	}
 
 	/**
-	 * Invalidate a groups object cache
+	 * Invalidate a group's object cache.
 	 *
-	 * @param mixed $groups A group or an array of groups to invalidate.
+	 * Unlike core, which takes one group, this also accepts an array of groups.
+	 *
+	 * @param string|string[] $groups A group or an array of groups to invalidate.
 	 *
 	 * @return bool
 	 */
-	public function flush_groups( $groups ) {
+	public function flush_group( $groups ) {
 		$groups = (array) $groups;
 
 		if ( empty( $groups ) ) {
@@ -899,6 +926,20 @@ class WP_Object_Cache {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Invalidate a group's object cache.
+	 *
+	 * The name this method had before 2.0, kept for code written against 1.x.
+	 * Use flush_group(), the name core uses.
+	 *
+	 * @param string|string[] $groups A group or an array of groups to invalidate.
+	 *
+	 * @return bool
+	 */
+	public function flush_groups( $groups ) {
+		return $this->flush_group( $groups );
 	}
 
 	/**
@@ -1545,6 +1586,83 @@ class WP_Object_Cache {
 	 */
 	public function switch_to_blog( $blog_id ) {
 		$this->blog_prefix = $this->multisite ? (int) $blog_id : 1;
+	}
+
+	/**
+	 * Does nothing. Core clears the non-global groups here after a blog switch, but
+	 * this cache puts the blog ID in every key, so there is nothing to clear.
+	 *
+	 * @deprecated 3.5.0 Use switch_to_blog().
+	 *
+	 * @return void
+	 */
+	public function reset() {
+		_deprecated_function( __FUNCTION__, '3.5.0', 'switch_to_blog()' );
+	}
+
+	/**
+	 * Reads a property, including the ones core's cache once had as public properties.
+	 *
+	 * `cache` is what this request holds in memory, by group and key (read only).
+	 * `global_groups`, `blog_prefix` and `multisite` map to this cache's own state.
+	 *
+	 * @param string $name Property name.
+	 * @return mixed Null for a name that was never set.
+	 */
+	public function __get( $name ) {
+		switch ( $name ) {
+			case 'cache':
+				return $this->get_grouped_cache();
+			case 'global_groups':
+				return $this->global_groups;
+			case 'blog_prefix':
+				return $this->blog_prefix;
+			case 'multisite':
+				return $this->multisite;
+			default:
+				return $this->dynamic_properties[ $name ] ?? null;
+		}
+	}
+
+	/**
+	 * Writes a property. The legacy properties are read only: writing one is
+	 * refused with a notice. Any other name is stored, as on a plain object.
+	 *
+	 * @param string $name  Property name.
+	 * @param mixed  $value Value.
+	 * @return void
+	 */
+	public function __set( $name, $value ) {
+		if ( in_array( $name, self::LEGACY_PROPERTIES, true ) ) {
+			_doing_it_wrong( __METHOD__, esc_html( sprintf( 'The "%s" property of the object cache is read only.', $name ) ), '2.0.0' );
+			return;
+		}
+
+		$this->dynamic_properties[ $name ] = $value;
+	}
+
+	/**
+	 * Whether a property is set.
+	 *
+	 * @param string $name Property name.
+	 * @return bool
+	 */
+	public function __isset( $name ) {
+		if ( in_array( $name, self::LEGACY_PROPERTIES, true ) ) {
+			return null !== $this->__get( $name );
+		}
+
+		return isset( $this->dynamic_properties[ $name ] );
+	}
+
+	/**
+	 * Unsets a property. Only properties that were stored by __set() can be removed.
+	 *
+	 * @param string $name Property name.
+	 * @return void
+	 */
+	public function __unset( $name ) {
+		unset( $this->dynamic_properties[ $name ] );
 	}
 
 	/**
