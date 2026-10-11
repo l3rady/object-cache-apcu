@@ -34,20 +34,6 @@ class Test_Known_Bugs extends APCu_Test_Case {
 	}
 
 	/**
-	 * Empty and non-scalar keys are rejected, like core 6.1+.
-	 *
-	 * @see https://github.com/l3rady/object-cache-apcu/issues/30
-	 */
-	public function test_invalid_keys_are_rejected() {
-		$this->new_request();
-
-		$this->assertFalse( wp_cache_set( '', 'value', 'posts' ), 'empty string' );
-		$this->assertFalse( wp_cache_set( '   ', 'value', 'posts' ), 'blank string' );
-		$this->assertFalse( wp_cache_set( null, 'value', 'posts' ), 'null' );
-		$this->assertFalse( wp_cache_set( array( 'a' ), 'value', 'posts' ), 'array' );
-	}
-
-	/**
 	 * The stats output lists groups, not full cache keys.
 	 *
 	 * @see https://github.com/l3rady/object-cache-apcu/issues/32

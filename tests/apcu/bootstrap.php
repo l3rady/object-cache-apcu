@@ -47,6 +47,17 @@ function esc_html( $text ) {
 }
 
 /**
+ * Stub for _doing_it_wrong(): remember the calls so tests can check them.
+ *
+ * @param string $function_name The function that was called wrongly.
+ * @param string $message       Explanation.
+ * @param string $version       Version the notice was added in.
+ */
+function _doing_it_wrong( $function_name, $message, $version ) {
+	$GLOBALS['apcu_test_doing_it_wrong'][] = array( $function_name, $message, $version );
+}
+
+/**
  * Stub for _deprecated_function().
  */
 function _deprecated_function() {}

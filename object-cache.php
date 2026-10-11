@@ -527,6 +527,10 @@ class WP_Object_Cache {
 			return false;
 		}
 
+		if ( ! $this->is_valid_key( $key ) ) {
+			return false;
+		}
+
 		$key = $this->build_key( $key, $group );
 
 		if ( ! $this->apcu_available || $this->is_non_persistent_group( $group ) ) {
@@ -623,6 +627,10 @@ class WP_Object_Cache {
 	 * @return false|int False on failure, the item's new value on success.
 	 */
 	public function decr( $key, $offset = 1, $group = 'default' ) {
+		if ( ! $this->is_valid_key( $key ) ) {
+			return false;
+		}
+
 		$key = $this->build_key( $key, $group );
 
 		if ( ! $this->apcu_available || $this->is_non_persistent_group( $group ) ) {
@@ -668,6 +676,10 @@ class WP_Object_Cache {
 	 * @return bool False if the contents weren't deleted and true on success
 	 */
 	public function delete( $key, $group = 'default', $deprecated = false ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Signature mirrors WP_Object_Cache::delete().
+		if ( ! $this->is_valid_key( $key ) ) {
+			return false;
+		}
+
 		$key = $this->build_key( $key, $group );
 
 		if ( ! $this->apcu_available || $this->is_non_persistent_group( $group ) ) {
@@ -689,7 +701,12 @@ class WP_Object_Cache {
 		$values = array();
 
 		foreach ( $keys as $key ) {
-			$values[ $key ] = $this->delete( $key, $group );
+			$deleted = $this->delete( $key, $group );
+
+			// An invalid key was reported by delete() and cannot be an array key.
+			if ( is_int( $key ) || is_string( $key ) ) {
+				$values[ $key ] = $deleted;
+			}
 		}
 
 		return $values;
@@ -841,6 +858,12 @@ class WP_Object_Cache {
 	 * @return bool|mixed False on failure to retrieve contents or the cache contents on success
 	 */
 	public function get( $key, $group = 'default', $force = false, &$success = null ) {
+		if ( ! $this->is_valid_key( $key ) ) {
+			$success = false;
+
+			return false;
+		}
+
 		$key = $this->build_key( $key, $group );
 
 		if ( ! $this->apcu_available || $this->is_non_persistent_group( $group ) ) {
@@ -974,7 +997,12 @@ class WP_Object_Cache {
 		$values = array();
 
 		foreach ( $keys as $key ) {
-			$values[ $key ] = $this->get( $key, $group, $force );
+			$value = $this->get( $key, $group, $force );
+
+			// An invalid key was reported by get() and cannot be an array key.
+			if ( is_int( $key ) || is_string( $key ) ) {
+				$values[ $key ] = $value;
+			}
 		}
 
 		return $values;
@@ -1011,6 +1039,10 @@ class WP_Object_Cache {
 	 * @return false|int False on failure, the item's new value on success.
 	 */
 	public function incr( $key, $offset = 1, $group = 'default' ) {
+		if ( ! $this->is_valid_key( $key ) ) {
+			return false;
+		}
+
 		$key = $this->build_key( $key, $group );
 
 		if ( ! $this->apcu_available || $this->is_non_persistent_group( $group ) ) {
@@ -1117,6 +1149,47 @@ class WP_Object_Cache {
 	}
 
 	/**
+	 * Checks that a cache key is an integer or a non-empty string, like core does
+	 * since WordPress 6.1. Reports anything else with _doing_it_wrong().
+	 *
+	 * @param mixed $key Cache key to check.
+	 *
+	 * @return bool True if the key can be used.
+	 */
+	private function is_valid_key( $key ) {
+		if ( ! is_int( $key ) && ! is_string( $key ) ) {
+			$this->invalid_key_notice(
+				sprintf(
+					/* translators: %s: The type of the given cache key. */
+					function_exists( '__' ) ? __( 'Cache key must be an integer or a non-empty string, %s given.' ) : 'Cache key must be an integer or a non-empty string, %s given.',
+					gettype( $key )
+				)
+			);
+
+			return false;
+		}
+
+		if ( is_string( $key ) && '' === trim( $key ) ) {
+			$this->invalid_key_notice( function_exists( '__' ) ? __( 'Cache key must not be an empty string.' ) : 'Cache key must not be an empty string.' );
+
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Reports a misused cache key.
+	 *
+	 * @param string $message What is wrong with the key.
+	 */
+	private function invalid_key_notice( $message ) {
+		if ( function_exists( '_doing_it_wrong' ) ) {
+			_doing_it_wrong( 'WP_Object_Cache', $message, '6.1.0' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fixed messages plus a type name; core does not escape them either, and esc_html() may not be loaded this early.
+		}
+	}
+
+	/**
 	 * Checks if the given group is a non persistent group
 	 *
 	 * @param string $group The group to be checked.
@@ -1163,6 +1236,10 @@ class WP_Object_Cache {
 	 * @return bool False if not exists, true if contents were replaced
 	 */
 	public function replace( $key, $value, $group = 'default', $ttl = 0 ) {
+		if ( ! $this->is_valid_key( $key ) ) {
+			return false;
+		}
+
 		$key = $this->build_key( $key, $group );
 
 		if ( ! $this->apcu_available || $this->is_non_persistent_group( $group ) ) {
@@ -1217,6 +1294,10 @@ class WP_Object_Cache {
 	 * @return bool True if cache set successfully else false
 	 */
 	public function set( $key, $value, $group = 'default', $ttl = 0 ) {
+		if ( ! $this->is_valid_key( $key ) ) {
+			return false;
+		}
+
 		$key = $this->build_key( $key, $group );
 
 		if ( ! $this->apcu_available || $this->is_non_persistent_group( $group ) ) {
