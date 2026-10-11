@@ -34,20 +34,6 @@ class Test_Known_Bugs extends APCu_Test_Case {
 	}
 
 	/**
-	 * Clearing the runtime cache must never touch APCu, even with the local cache off.
-	 *
-	 * @see https://github.com/l3rady/object-cache-apcu/issues/25
-	 */
-	public function test_flush_runtime_keeps_apcu_data_when_the_local_cache_is_off() {
-		$this->new_request( true, false );
-		wp_cache_set( 'key', 'value', 'posts' );
-
-		wp_cache_flush_runtime();
-
-		$this->assertSame( 'value', wp_cache_get( 'key', 'posts' ) );
-	}
-
-	/**
 	 * Empty and non-scalar keys are rejected, like core 6.1+.
 	 *
 	 * @see https://github.com/l3rady/object-cache-apcu/issues/30

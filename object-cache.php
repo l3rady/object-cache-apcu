@@ -759,18 +759,17 @@ class WP_Object_Cache {
 	}
 
 	/**
-	 * If using local cache clear that, else flush all.
+	 * Clears this request's in-memory state: the local cache, non persistent groups and
+	 * remembered versions. Never touches APCu.
 	 *
 	 * @return bool Always returns true
 	 */
 	public function flush_runtime() {
+		// Only this request's memory is cleared. APCu is persistent storage and is never touched.
 		$this->non_persistent_cache = array();
-
-		if ( $this->local_cache_enabled ) {
-			$this->local_cache = array();
-		} elseif ( $this->apcu_available ) {
-			apcu_clear_cache();
-		}
+		$this->local_cache          = array();
+		$this->group_versions       = array();
+		$this->site_versions        = array();
 
 		return true;
 	}
