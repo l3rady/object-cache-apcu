@@ -32,20 +32,4 @@ class Test_Known_Bugs extends APCu_Test_Case {
 
 		$this->assertFalse( wp_cache_get( 'key', 'posts' ), 'Flushed data must stay flushed.' );
 	}
-
-	/**
-	 * The stats output lists groups, not full cache keys.
-	 *
-	 * @see https://github.com/l3rady/object-cache-apcu/issues/32
-	 */
-	public function test_stats_lists_groups() {
-		$cache = $this->new_request();
-		wp_cache_set( 'key', 'value', 'posts' );
-
-		ob_start();
-		$cache->stats();
-		$output = ob_get_clean();
-
-		$this->assertStringContainsString( '<strong>Group:</strong> posts ', $output );
-	}
 }

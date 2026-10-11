@@ -10,6 +10,7 @@
 
 define( 'ABSPATH', '/tmp/object-cache-apcu-tests/' );
 define( 'KB_IN_BYTES', 1024 );
+define( 'MB_IN_BYTES', 1024 * KB_IN_BYTES );
 
 require_once dirname( __DIR__, 2 ) . '/vendor/autoload.php';
 

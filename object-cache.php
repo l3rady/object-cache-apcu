@@ -495,7 +495,9 @@ class WP_Object_Cache {
 	/**
 	 * Echoes the stats of the caching.
 	 *
-	 * Gives the cache hits and cache misses, and the size of each cached group.
+	 * Gives the cache hits and cache misses, the size of each group held in this
+	 * request's memory (the local cache and the non persistent groups, like core
+	 * does) and, when APCu is in use, how full APCu is.
 	 */
 	public function stats() {
 		echo '<p>';
@@ -504,12 +506,81 @@ class WP_Object_Cache {
 		echo '</p>';
 		echo '<ul>';
 
-		foreach ( $this->local_cache as $group => $cache ) {
-			// Mirrors WP_Object_Cache::stats(), which sizes each group by serializing it.
-			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize
-			echo '<li><strong>Group:</strong> ' . esc_html( $group ) . ' - ( ' . number_format( strlen( serialize( $cache ) ) / KB_IN_BYTES, 2 ) . 'k )</li>';
+		foreach ( $this->get_group_sizes() as $group => $size ) {
+			echo '<li><strong>Group:</strong> ' . esc_html( $group ) . ' - ( ' . number_format( $size / KB_IN_BYTES, 2 ) . 'k )</li>';
 		}
 		echo '</ul>';
+
+		$this->apcu_stats();
+	}
+
+	/**
+	 * Sizes the groups held in this request's memory.
+	 *
+	 * Entries are stored under their full key, so the group is found by matching
+	 * the key against the groups used so far in this request. If one group name
+	 * is the start of another's, the longest match wins.
+	 *
+	 * @return int[] Serialized size in bytes, by group name, sorted by name.
+	 */
+	private function get_group_sizes() {
+		$groups = array_keys( $this->group_versions );
+		usort(
+			$groups,
+			static function ( $a, $b ) {
+				return strlen( $b ) - strlen( $a );
+			}
+		);
+
+		$entries = array();
+		foreach ( array( $this->local_cache, $this->non_persistent_cache ) as $cache ) {
+			foreach ( $cache as $key => $value ) {
+				foreach ( $groups as $group ) {
+					if ( 1 === preg_match( '/^' . preg_quote( $this->key_salt . ':' . $this->abs_path, '/' ) . ':\d+:' . preg_quote( $group, '/' ) . ':/', (string) $key ) ) {
+						$entries[ $group ][ $key ] = $value;
+						continue 2;
+					}
+				}
+			}
+		}
+
+		$sizes = array();
+		foreach ( $entries as $group => $values ) {
+			// Mirrors WP_Object_Cache::stats(), which sizes each group by serializing it.
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize
+			$sizes[ $group ] = strlen( serialize( $values ) );
+		}
+		ksort( $sizes );
+
+		return $sizes;
+	}
+
+	/**
+	 * Echoes how APCu is doing: useful when the cache seems slower than none.
+	 */
+	private function apcu_stats() {
+		if ( ! $this->apcu_available || ! function_exists( 'apcu_cache_info' ) || ! function_exists( 'apcu_sma_info' ) ) {
+			return;
+		}
+
+		$info = apcu_cache_info( true );
+		$sma  = apcu_sma_info( true );
+		if ( ! is_array( $info ) || ! is_array( $sma ) ) {
+			return;
+		}
+
+		$total  = $sma['seg_size'] * $sma['num_seg'];
+		$used   = $total - $sma['avail_mem'];
+		$hits   = (int) $info['num_hits'];
+		$misses = (int) $info['num_misses'];
+		$rate   = ( $hits + $misses ) > 0 ? $hits / ( $hits + $misses ) * 100 : 0;
+
+		echo '<p>';
+		echo '<strong>APCu Entries:</strong> ' . (int) $info['num_entries'] . '<br />';
+		echo '<strong>APCu Memory:</strong> ' . number_format( $used / MB_IN_BYTES, 1 ) . ' MB used of ' . number_format( $total / MB_IN_BYTES, 1 ) . ' MB<br />';
+		echo '<strong>APCu Hit Rate:</strong> ' . esc_html( number_format( $rate, 1 ) ) . '%<br />';
+		echo '<strong>APCu Expunges:</strong> ' . (int) $info['expunges'] . '<br />';
+		echo '</p>';
 	}
 
 	/**
