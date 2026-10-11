@@ -3,6 +3,7 @@
  * Plugin Name: WordPress APCu Object Cache Backend
  * Plugin URI: https://github.com/l3rady/object-cache-apcu
  * Description: APCu backend for WordPress' Object Cache
+ * Requires PHP: 7.4
  * x-release-please-start-version
  * Version: 1.2.0
  * x-release-please-end
@@ -365,21 +366,21 @@ class WP_Object_Cache {
 	 *
 	 * @var string
 	 */
-	private $abs_path;
+	private string $abs_path;
 
 	/**
 	 * Stores if APCu is available.
 	 *
 	 * @var bool
 	 */
-	private $apcu_available;
+	private bool $apcu_available;
 
 	/**
 	 * The sites current blog ID. This only differs if running a multi-site installations.
 	 *
 	 * @var int
 	 */
-	private $blog_prefix;
+	private int $blog_prefix;
 
 	/**
 	 * Keeps count of how many times the cache was successfully received from APCu.
@@ -400,63 +401,63 @@ class WP_Object_Cache {
 	 *
 	 * @var array<string, bool>
 	 */
-	private $global_groups = array();
+	private array $global_groups = array();
 
 	/**
 	 * Holds an array of versions of the retrieved groups.
 	 *
 	 * @var array<string, string|int>
 	 */
-	private $group_versions = array();
+	private array $group_versions = array();
 
 	/**
 	 * True if the current installation is a multi-site.
 	 *
 	 * @var bool
 	 */
-	private $multisite;
+	private bool $multisite;
 
 	/**
 	 * Holds cache that is to be non persistent.
 	 *
 	 * @var array<string, mixed>
 	 */
-	private $non_persistent_cache = array();
+	private array $non_persistent_cache = array();
 
 	/**
 	 * Holds a list of cache groups that are not to be saved to APCu.
 	 *
 	 * @var array<string, bool>
 	 */
-	private $non_persistent_groups = array();
+	private array $non_persistent_groups = array();
 
 	/**
 	 * Holds values read from or written to APCu during this request.
 	 *
 	 * @var array<string, mixed>
 	 */
-	private $local_cache = array();
+	private array $local_cache = array();
 
 	/**
 	 * Holds an array of versions of the retrieved sites.
 	 *
 	 * @var array<string|int, string|int>
 	 */
-	private $site_versions = array();
+	private array $site_versions = array();
 
 	/**
 	 * Salt prepended to every key (WP_APCU_KEY_SALT).
 	 *
 	 * @var string
 	 */
-	private $key_salt;
+	private string $key_salt;
 
 	/**
 	 * Whether the in-request array cache is used (WP_APCU_LOCAL_CACHE).
 	 *
 	 * @var bool
 	 */
-	private $local_cache_enabled;
+	private bool $local_cache_enabled;
 
 	/**
 	 * Return the global object cache, creating it if wp_cache_init() has not run yet.
@@ -488,7 +489,7 @@ class WP_Object_Cache {
 
 		// Define WP_APCU_KEY_SALT in config if you are using some sort of shared
 		// config where ABSPATH is the same on all sites.
-		$this->key_salt = defined( 'WP_APCU_KEY_SALT' ) ? WP_APCU_KEY_SALT : 'wp';
+		$this->key_salt = defined( 'WP_APCU_KEY_SALT' ) ? (string) WP_APCU_KEY_SALT : 'wp';
 
 		// Define WP_APCU_LOCAL_CACHE as false to disable the local array cache
 		// and force all cache to be returned from APCu.
@@ -500,7 +501,7 @@ class WP_Object_Cache {
 		// CLI without apc.enable_cli, so ask APCu itself when it can tell us.
 		$this->apcu_available = extension_loaded( 'apcu' ) && ( function_exists( 'apcu_enabled' ) ? apcu_enabled() : (bool) ini_get( 'apc.enabled' ) );
 		$this->multisite      = is_multisite();
-		$this->blog_prefix    = $this->multisite ? $blog_id : 1;
+		$this->blog_prefix    = $this->multisite ? (int) $blog_id : 1;
 	}
 
 	/**
@@ -536,13 +537,11 @@ class WP_Object_Cache {
 	 *
 	 * @return int[] Serialized size in bytes, by group name, sorted by name.
 	 */
-	private function get_group_sizes() {
+	private function get_group_sizes(): array {
 		$groups = array_keys( $this->group_versions );
 		usort(
 			$groups,
-			static function ( $a, $b ) {
-				return strlen( $b ) - strlen( $a );
-			}
+			static fn( $a, $b ) => strlen( $b ) - strlen( $a )
 		);
 
 		$entries = array();
@@ -573,7 +572,7 @@ class WP_Object_Cache {
 	 *
 	 * @return void
 	 */
-	private function apcu_stats() {
+	private function apcu_stats(): void {
 		if ( ! $this->apcu_available || ! function_exists( 'apcu_cache_info' ) || ! function_exists( 'apcu_sma_info' ) ) {
 			return;
 		}
@@ -655,7 +654,7 @@ class WP_Object_Cache {
 	 *
 	 * @return bool False if cache key and group already exist, true on success
 	 */
-	private function add_apcu( $key, $value, $ttl ) {
+	private function add_apcu( $key, $value, $ttl ): bool {
 		if ( apcu_add( $key, $value, max( (int) $ttl, 0 ) ) ) {
 			if ( $this->local_cache_enabled ) {
 				$this->local_cache[ $key ] = is_object( $value ) ? clone $value : $value;
@@ -673,7 +672,7 @@ class WP_Object_Cache {
 	 *
 	 * @return bool False if cache key and group already exist, true on success
 	 */
-	private function add_np( $key, $value ) {
+	private function add_np( $key, $value ): bool {
 		if ( $this->exists_np( $key ) ) {
 			return false;
 		}
@@ -811,7 +810,7 @@ class WP_Object_Cache {
 	 *
 	 * @return bool False if the contents weren't deleted and true on success
 	 */
-	private function delete_apcu( $key ) {
+	private function delete_apcu( $key ): bool {
 		unset( $this->local_cache[ $key ] );
 		return apcu_delete( $key );
 	}
@@ -825,7 +824,7 @@ class WP_Object_Cache {
 	 *
 	 * @return bool False if the contents weren't deleted and true on success
 	 */
-	private function delete_np( $key ) {
+	private function delete_np( $key ): bool {
 		if ( array_key_exists( $key, $this->non_persistent_cache ) ) {
 			unset( $this->non_persistent_cache[ $key ] );
 
@@ -842,7 +841,7 @@ class WP_Object_Cache {
 	 *
 	 * @return bool True if cache key exists else false
 	 */
-	private function exists_np( $key ) {
+	private function exists_np( $key ): bool {
 		return array_key_exists( $key, $this->non_persistent_cache );
 	}
 
@@ -1029,7 +1028,7 @@ class WP_Object_Cache {
 	 *
 	 * @return string The new version token.
 	 */
-	private function new_cache_version() {
+	private function new_cache_version(): string {
 		return bin2hex( random_bytes( 6 ) );
 	}
 
@@ -1043,7 +1042,7 @@ class WP_Object_Cache {
 	 *
 	 * @return string cache version
 	 */
-	private function get_cache_version( $key ) {
+	private function get_cache_version( $key ): string {
 		if ( $this->apcu_available ) {
 			$version = apcu_fetch( $key );
 
@@ -1075,7 +1074,7 @@ class WP_Object_Cache {
 	 *
 	 * @return string The key
 	 */
-	private function get_cache_version_key( $type, $value ) {
+	private function get_cache_version_key( string $type, $value ): string {
 		return $this->key_salt . ':' . $this->abs_path . ':' . $type . ':' . $value;
 	}
 
@@ -1087,14 +1086,12 @@ class WP_Object_Cache {
 	 * @return int|string The group cache version
 	 */
 	private function get_group_cache_version( $group ) {
-		if ( ! isset( $this->group_versions[ $group ] ) ) {
-			$this->group_versions[ $group ] = $this->get_cache_version(
-				$this->get_cache_version_key(
-					'GroupVersion',
-					$group
-				)
-			);
-		}
+		$this->group_versions[ $group ] ??= $this->get_cache_version(
+			$this->get_cache_version_key(
+				'GroupVersion',
+				$group
+			)
+		);
 
 		return $this->group_versions[ $group ];
 	}
@@ -1134,14 +1131,12 @@ class WP_Object_Cache {
 	 * @return int|string The site cache version
 	 */
 	private function get_site_cache_version( $site ) {
-		if ( ! isset( $this->site_versions[ $site ] ) ) {
-			$this->site_versions[ $site ] = $this->get_cache_version(
-				$this->get_cache_version_key(
-					'SiteVersion',
-					$site
-				)
-			);
-		}
+		$this->site_versions[ $site ] ??= $this->get_cache_version(
+			$this->get_cache_version_key(
+				'SiteVersion',
+				$site
+			)
+		);
 
 		return $this->site_versions[ $site ];
 	}
@@ -1208,7 +1203,7 @@ class WP_Object_Cache {
 	 * @return false|int False if the item does not exist or the change kept
 	 *                    losing the race, otherwise its new value.
 	 */
-	private function change_apcu( $key, $delta ) {
+	private function change_apcu( $key, int $delta ) {
 		for ( $attempt = 0; $attempt < self::MAX_CAS_ATTEMPTS; $attempt++ ) {
 			$current = $this->fetch_for_change( $key, $success );
 			if ( ! $success ) {
@@ -1252,7 +1247,7 @@ class WP_Object_Cache {
 	 *
 	 * @return false|int False if the item does not exist, otherwise its new value.
 	 */
-	private function change_np( $key, $delta ) {
+	private function change_np( $key, int $delta ) {
 		if ( ! $this->exists_np( $key ) ) {
 			return false;
 		}
@@ -1273,7 +1268,7 @@ class WP_Object_Cache {
 	 *
 	 * @return bool True if the key can be used.
 	 */
-	private function is_valid_key( $key ) {
+	private function is_valid_key( $key ): bool {
 		if ( ! is_int( $key ) && ! is_string( $key ) ) {
 			$this->invalid_key_notice(
 				sprintf(
@@ -1302,7 +1297,7 @@ class WP_Object_Cache {
 	 *
 	 * @return void
 	 */
-	private function invalid_key_notice( $message ) {
+	private function invalid_key_notice( string $message ): void {
 		if ( function_exists( '_doing_it_wrong' ) ) {
 			_doing_it_wrong( 'WP_Object_Cache', $message, '6.1.0' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fixed messages plus a type name; core does not escape them either, and esc_html() may not be loaded this early.
 		}
@@ -1315,7 +1310,7 @@ class WP_Object_Cache {
 	 *
 	 * @return bool True if the group is a non persistent group else false
 	 */
-	private function is_non_persistent_group( $group ) {
+	private function is_non_persistent_group( $group ): bool {
 		return isset( $this->non_persistent_groups[ $group ] );
 	}
 
@@ -1327,7 +1322,7 @@ class WP_Object_Cache {
 	 *
 	 * @return string Returns the calculated cache key
 	 */
-	private function build_key( $key, $group ) {
+	private function build_key( $key, $group ): string {
 		if ( empty( $group ) ) {
 			$group = 'default';
 		}
@@ -1377,7 +1372,7 @@ class WP_Object_Cache {
 	 *
 	 * @return bool False if not exists, true if contents were replaced
 	 */
-	private function replace_apcu( $key, $value, $ttl ) {
+	private function replace_apcu( $key, $value, $ttl ): bool {
 		$this->get_apcu( $key, $success );
 		if ( ! $success ) {
 			return false;
@@ -1394,7 +1389,7 @@ class WP_Object_Cache {
 	 *
 	 * @return bool False if not exists, true if contents were replaced
 	 */
-	private function replace_np( $key, $value ) {
+	private function replace_np( $key, $value ): bool {
 		if ( ! $this->exists_np( $key ) ) {
 			return false;
 		}
@@ -1454,7 +1449,7 @@ class WP_Object_Cache {
 	 *
 	 * @return bool True if cache set successfully else false
 	 */
-	private function set_apcu( $key, $value, $ttl ) {
+	private function set_apcu( $key, $value, $ttl ): bool {
 		if ( is_object( $value ) ) {
 			$value = clone $value;
 		}
@@ -1481,7 +1476,7 @@ class WP_Object_Cache {
 	 *
 	 * @return bool True if cache set successfully else false
 	 */
-	private function set_np( $key, $value ) {
+	private function set_np( $key, $value ): bool {
 		if ( is_object( $value ) ) {
 			$value = clone $value;
 		}
@@ -1517,7 +1512,7 @@ class WP_Object_Cache {
 	 *
 	 * @return void
 	 */
-	private function set_group_cache_version( $group, $version ) {
+	private function set_group_cache_version( $group, $version ): void {
 		$this->set_cache_version( $this->get_cache_version_key( 'GroupVersion', $group ), $version );
 
 		// Keys built for the rest of this request must use the new version too.
@@ -1532,7 +1527,7 @@ class WP_Object_Cache {
 	 *
 	 * @return void
 	 */
-	private function set_site_cache_version( $site, $version ) {
+	private function set_site_cache_version( $site, $version ): void {
 		$this->set_cache_version( $this->get_cache_version_key( 'SiteVersion', $site ), $version );
 
 		// Keys built for the rest of this request must use the new version too.
@@ -1549,7 +1544,7 @@ class WP_Object_Cache {
 	 * @return void
 	 */
 	public function switch_to_blog( $blog_id ) {
-		$this->blog_prefix = $this->multisite ? $blog_id : 1;
+		$this->blog_prefix = $this->multisite ? (int) $blog_id : 1;
 	}
 
 	/**
