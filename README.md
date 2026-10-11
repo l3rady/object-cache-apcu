@@ -54,6 +54,7 @@ Everything runs in Docker, so the only host requirements are `docker` and `docke
 
 ```
 make test                         # every test layer below
+make commits                      # commit messages follow Conventional Commits (commits on this branch)
 make stan                         # static analysis (PHPStan level 8, WordPress stubs, parsed as PHP 7.4)
 make rector                       # show the PHP 7.4 syntax upgrades Rector would make (changes nothing)
 make test-apcu                    # plain APCu tests (PHPUnit, no WordPress), PHP_VERSION=7.4 to 8.5
