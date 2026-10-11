@@ -36,6 +36,26 @@ class Test_Dropin extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Plugins call core's cache methods on the global object, so ours must have them all.
+	 *
+	 * Reads the public methods from core's own class file, so a method added by a
+	 * newer WordPress (the nightly trunk run) shows up here.
+	 */
+	public function test_every_public_method_of_cores_cache_class_exists() {
+		global $wp_object_cache;
+
+		$source = file_get_contents( ABSPATH . WPINC . '/class-wp-object-cache.php' );
+		$this->assertNotFalse( $source, 'Could not read core\'s class-wp-object-cache.php.' );
+
+		preg_match_all( '/^\s*public\s+function\s+&?\s*(\w+)\s*\(/m', $source, $matches );
+		$this->assertContains( 'flush_group', $matches[1], 'The parse found no methods; the check is not looking at core\'s class.' );
+
+		foreach ( $matches[1] as $method ) {
+			$this->assertTrue( method_exists( $wp_object_cache, $method ), 'Missing WP_Object_Cache::' . $method . '()' );
+		}
+	}
+
+	/**
 	 * Values written through WordPress's functions live in APCu, not just in memory.
 	 */
 	public function test_values_survive_clearing_the_runtime_cache() {
