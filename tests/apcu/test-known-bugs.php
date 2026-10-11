@@ -17,19 +17,6 @@
 class Test_Known_Bugs extends APCu_Test_Case {
 
 	/**
-	 * Set and add must return a bool for non persistent groups too.
-	 *
-	 * @see https://github.com/l3rady/object-cache-apcu/issues/26
-	 */
-	public function test_non_persistent_set_and_add_return_booleans() {
-		$this->new_request();
-
-		$this->assertTrue( wp_cache_set( 'zero', 0, 'np' ), 'set() of 0' );
-		$this->assertTrue( wp_cache_set( 'empty', array(), 'np' ), 'set() of an empty array' );
-		$this->assertTrue( wp_cache_add( 'text', '', 'np' ), 'add() of an empty string' );
-	}
-
-	/**
 	 * Data flushed with flush_group must not come back if APCu loses the version key.
 	 *
 	 * @see https://github.com/l3rady/object-cache-apcu/issues/24

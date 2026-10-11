@@ -1280,7 +1280,7 @@ class WP_Object_Cache {
 
 		$this->non_persistent_cache[ $key ] = $value;
 
-		return $value;
+		return true;
 	}
 
 	/**
