@@ -1181,7 +1181,7 @@ class WP_Object_Cache {
 	 *
 	 * @return string The new version token.
 	 */
-	private function new_cache_version(): string {
+	protected function new_cache_version(): string {
 		return bin2hex( random_bytes( 6 ) );
 	}
 
