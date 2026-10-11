@@ -25,6 +25,15 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Static analysis with the WordPress stubs, parsing as PHP 7.4.
+  phpstan:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Static analysis (PHPStan)
+        run: make stan
+
   # Plain APCu tests (no WordPress) on every supported PHP version.
   phpunit:
     if: github.event_name != 'schedule'

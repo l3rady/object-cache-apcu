@@ -16,7 +16,7 @@ export HOST_GID := $(shell id -g)
 COMPOSE := docker compose
 
 .DEFAULT_GOAL := help
-.PHONY: help build shell composer deps lint fix smoke test test-apcu test-known-bugs coverage test-wp test-wp-ms test-core matrix clean
+.PHONY: help build shell composer deps lint fix smoke test test-apcu test-known-bugs coverage test-wp test-wp-ms test-core stan rector rector-fix matrix clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "} {printf "  %-12s %s\n", $$1, $$2}'
@@ -44,6 +44,15 @@ fix: deps ## Auto-fix coding standard violations with phpcbf
 
 smoke: ## Verify PHP, APCu, mysqli and that object-cache.php lints
 	$(COMPOSE) run --build --rm php sh docker/smoke.sh
+
+stan: deps ## Static analysis with PHPStan (WordPress stubs)
+	$(COMPOSE) run --build --rm php vendor/bin/phpstan analyse --no-progress --memory-limit=1G $(ARGS)
+
+rector: deps ## Show the PHP 7.4 syntax upgrades Rector would make (changes nothing)
+	$(COMPOSE) run --build --rm php vendor/bin/rector process --dry-run --no-progress-bar $(ARGS)
+
+rector-fix: deps ## Apply Rector's upgrades, then run make fix and make lint
+	$(COMPOSE) run --build --rm php vendor/bin/rector process --no-progress-bar $(ARGS)
 
 test-apcu: deps ## Run the plain APCu tests (PHPUnit, no WordPress)
 	$(COMPOSE) run --build --rm php vendor/bin/phpunit $(ARGS)
