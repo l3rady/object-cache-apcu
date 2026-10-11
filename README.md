@@ -57,8 +57,9 @@ Run `composer install` and `object-cache.php` is in place.
 - The installer's last release is from 2022. It works with Composer 2, and this project's CI installs the archive with it every night, so a break would be noticed.
 
 ### Manually ###
-1. Copy `object-cache.php` to your WordPress content directory (`wp-content/` by default).
-2. Done!
+1. Download `object-cache.php` from the [latest release](https://github.com/l3rady/object-cache-apcu/releases/latest) (and `object-cache.php.sha256` if you want to check it: `sha256sum -c object-cache.php.sha256` in the folder you downloaded both to).
+2. Copy it to your WordPress content directory (`wp-content/` by default).
+3. Done!
 
 ## Operations ##
 [Running the APCu object cache](docs/operations.md) covers compatibility, the recommended `php.ini` settings, why the CLI and the web server do not share a cache, the local cache, flushing, multisite and expiry.

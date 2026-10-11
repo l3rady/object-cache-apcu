@@ -43,6 +43,18 @@ jobs:
       - name: Composer install of the dist archive
         run: make test-composer
 
+  # The script that attaches the single file to a release, rehearsed on every change
+  # against this checkout's own version.
+  release-assets:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build and verify the release files (dry run)
+        run: |
+          version="$(sed -n 's/^ \* Version: //p' object-cache.php | head -n 1)"
+          sh bin/release-assets.sh "v$version" --dry-run
+
   # Rector must have nothing left to upgrade to PHP 7.4.
   rector:
     if: github.event_name != 'schedule'
