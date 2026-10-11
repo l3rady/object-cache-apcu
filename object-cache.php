@@ -877,8 +877,7 @@ class WP_Object_Cache {
 		}
 
 		foreach ( $groups as $group ) {
-			$version = $this->get_group_cache_version( $group );
-			$this->set_group_cache_version( $group, $version + 1 );
+			$this->set_group_cache_version( $group, $this->new_cache_version() );
 		}
 
 		return true;
@@ -905,8 +904,7 @@ class WP_Object_Cache {
 		}
 
 		foreach ( $sites as $site ) {
-			$version = $this->get_site_cache_version( $site );
-			$this->set_site_cache_version( $site, $version + 1 );
+			$this->set_site_cache_version( $site, $this->new_cache_version() );
 		}
 
 		return true;
@@ -1003,22 +1001,51 @@ class WP_Object_Cache {
 	}
 
 	/**
+	 * Mints a version token that has never been used before.
+	 *
+	 * Versions are random tokens, not counters. A counter restarts at 0 when APCu evicts its key,
+	 * which makes keys written under an old version reachable again, and two processes that flush
+	 * from the same remembered value write the same next number, so one flush is lost. A token
+	 * cannot collide with an earlier one, so a lost version key only costs a cache refill.
+	 *
+	 * @return string The new version token.
+	 */
+	private function new_cache_version() {
+		return bin2hex( random_bytes( 6 ) );
+	}
+
+	/**
 	 * Get the cache version of a given key
+	 *
+	 * If the version is missing, because it was never created or APCu evicted it, a new token is
+	 * created. Everything stored under the lost version stays unreachable.
 	 *
 	 * @param string $key The cache key.
 	 *
-	 * @return int cache version
+	 * @return string cache version
 	 */
 	private function get_cache_version( $key ) {
 		if ( $this->apcu_available ) {
-			$version = (int) apcu_fetch( $key );
+			$version = apcu_fetch( $key );
+
+			if ( false === $version ) {
+				$version = $this->new_cache_version();
+
+				// Add, so a version created by a concurrent request wins and both agree on it.
+				if ( ! apcu_add( $key, $version ) ) {
+					$existing = apcu_fetch( $key );
+					$version  = false === $existing ? $version : $existing;
+				}
+			}
 		} elseif ( array_key_exists( $key, $this->non_persistent_cache ) ) {
-			$version = (int) $this->non_persistent_cache[ $key ];
+			$version = $this->non_persistent_cache[ $key ];
 		} else {
-			$version = 0;
+			$version = $this->new_cache_version();
+
+			$this->non_persistent_cache[ $key ] = $version;
 		}
 
-		return $version;
+		return (string) $version;
 	}
 
 	/**
@@ -1038,7 +1065,7 @@ class WP_Object_Cache {
 	 *
 	 * @param string $group The group to get version for.
 	 *
-	 * @return int The group cache version
+	 * @return string The group cache version
 	 */
 	private function get_group_cache_version( $group ) {
 		if ( ! isset( $this->group_versions[ $group ] ) ) {
@@ -1085,7 +1112,7 @@ class WP_Object_Cache {
 	 *
 	 * @param int $site The site to get version for.
 	 *
-	 * @return int The site cache version
+	 * @return string The site cache version
 	 */
 	private function get_site_cache_version( $site ) {
 		if ( ! isset( $this->site_versions[ $site ] ) ) {
@@ -1443,7 +1470,7 @@ class WP_Object_Cache {
 	 * Set the cache version for a given key
 	 *
 	 * @param string $key The cache key.
-	 * @param int    $version The version number.
+	 * @param string $version The version token.
 	 *
 	 * @return mixed
 	 */
@@ -1461,7 +1488,7 @@ class WP_Object_Cache {
 	 * Set the version for a groups cache
 	 *
 	 * @param string $group The cache group.
-	 * @param int    $version The version number.
+	 * @param string $version The version token.
 	 */
 	private function set_group_cache_version( $group, $version ) {
 		$this->set_cache_version( $this->get_cache_version_key( 'GroupVersion', $group ), $version );
@@ -1473,8 +1500,8 @@ class WP_Object_Cache {
 	/**
 	 * Set the version for a sites cache
 	 *
-	 * @param int $site The site ID.
-	 * @param int $version The version number.
+	 * @param int    $site    The site ID.
+	 * @param string $version The version token.
 	 */
 	private function set_site_cache_version( $site, $version ) {
 		$this->set_cache_version( $this->get_cache_version_key( 'SiteVersion', $site ), $version );
