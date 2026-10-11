@@ -344,6 +344,13 @@ function wp_cache_supports( $feature ) {
  */
 class WP_Object_Cache {
 
+	/**
+	 * How many times incr() and decr() retry when another request changes the
+	 * value while they are working on it, before giving up.
+	 *
+	 * @var int
+	 */
+	private const MAX_CAS_ATTEMPTS = 10;
 
 	/**
 	 * MD5 hash of the current installation ABSPATH.
@@ -1038,16 +1045,19 @@ class WP_Object_Cache {
 	 * is not numeric counts as 0 and the result never goes below 0.
 	 *
 	 * The change is applied with a compare and swap so that concurrent requests
-	 * do not lose updates. The item keeps the lifetime it was stored with.
+	 * do not lose updates: if another request changed the value since it was
+	 * read, it is read again and the change retried, up to MAX_CAS_ATTEMPTS
+	 * times. The item keeps the lifetime it was stored with.
 	 *
 	 * @param string $key   The cache key.
 	 * @param int    $delta Amount to add; negative to subtract.
 	 *
-	 * @return false|int False if the item does not exist, otherwise its new value.
+	 * @return false|int False if the item does not exist or the change kept
+	 *                    losing the race, otherwise its new value.
 	 */
 	private function change_apcu( $key, $delta ) {
-		for ( $attempt = 0; $attempt < 10; $attempt++ ) {
-			$current = apcu_fetch( $key, $success );
+		for ( $attempt = 0; $attempt < self::MAX_CAS_ATTEMPTS; $attempt++ ) {
+			$current = $this->fetch_for_change( $key, $success );
 			if ( ! $success ) {
 				return false;
 			}
@@ -1064,6 +1074,21 @@ class WP_Object_Cache {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Reads the current value of an APCu item that is about to be changed.
+	 *
+	 * Always reads APCu, never the local cache. A separate method so tests can
+	 * simulate another request changing the value between the read and the write.
+	 *
+	 * @param string $key     The cache key.
+	 * @param bool   $success Set to whether the item was found.
+	 *
+	 * @return mixed The stored value.
+	 */
+	protected function fetch_for_change( $key, &$success ) {
+		return apcu_fetch( $key, $success );
 	}
 
 	/**

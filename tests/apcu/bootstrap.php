@@ -54,3 +54,4 @@ function _deprecated_function() {}
 require_once dirname( __DIR__, 2 ) . '/object-cache.php';
 
 require_once __DIR__ . '/class-apcu-test-case.php';
+require_once __DIR__ . '/class-racing-object-cache.php';
