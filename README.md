@@ -2,7 +2,8 @@
 Contributors: l3rady  
 Tags: APCu, object cache, backend, cache, performance, speed  
 Requires at least: 5.6  
-Tested up to: 6.5.3  
+Requires PHP: 7.4  
+Tested up to: 7.1.3  
 Stable tag: 1.2.0 <!-- x-release-please-version -->
 
 WordPress APCu Object Cache Backend provides a persistent memory-based backend for the WordPress object cache.
@@ -25,7 +26,7 @@ This plugin is marked as a wordpress-dropin type and can be installed automatica
 Once the composer-dropin-installer is installed and configured in your project you can run `composer require l3rady/object-cache-apcu`. If set up correctly this should place the object-cache.php file into the your WordPress content dir, usually `wp-content`.
 
 ## Manual Installation ##
-1. Verify that you have PHP 7.2+ and APCu 5.1 or newer installed. In the command line (WP-CLI, cron) APCu only works with `apc.enable_cli=1`; without it the cache keeps data in memory for that run only, and does not share it with the web server.
+1. Verify that you have PHP 7.4+ and APCu 5.1 or newer installed. In the command line (WP-CLI, cron) APCu only works with `apc.enable_cli=1`; without it the cache keeps data in memory for that run only, and does not share it with the web server.
 2. Copy `object-cache.php` to your WordPress content directory (`wp-content/` by default).
 3. Done!
 
@@ -70,7 +71,7 @@ There are three layers, all in Docker:
 Every pull request runs, in the same Docker setup (see `.github/workflows`):
 
 - `lint`: the WordPress Coding Standards.
-- `ci` / `phpstan`: static analysis (`make stan`).
+- `ci` / `phpstan` and `ci` / `rector`: static analysis (`make stan`) and a check that no PHP 7.4 syntax upgrade is left undone (`make rector`).
 - `ci` / `phpunit`: the plain APCu tests on every PHP version from 7.4 to 8.5.
 - `ci` / `wordpress`: the WordPress tests (single site and multisite) and core conformance on PHP 7.4 and 8.5, against WordPress 7.1.3.
 - A nightly run of the same WordPress jobs against WordPress `trunk`, to catch core changes early. Run it by hand from the Actions tab and give it a `wp_version` to test any tag or branch.

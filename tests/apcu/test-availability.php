@@ -84,9 +84,7 @@ class Test_Availability extends APCu_Test_Case {
 		// A value APCu cannot store makes the write fail; it also warns, which is expected here.
 		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- Hides the expected warning.
 		set_error_handler(
-			static function () {
-				return true;
-			}
+			static fn() => true
 		);
 		$stored = wp_cache_set( 'key', fopen( 'php://memory', 'r' ), 'posts' );
 		restore_error_handler();
