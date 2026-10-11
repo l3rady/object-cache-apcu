@@ -21,6 +21,17 @@ services:
   php:
     <<: *dev
 
+  # Commit message check: `make commits`.
+  commitlint:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: commitlint
+    image: object-cache-apcu:commitlint
+    working_dir: /app
+    volumes:
+      - .:/app:ro
+
   # Composer helper: `docker compose run --rm composer require ...`
   composer:
     <<: *dev

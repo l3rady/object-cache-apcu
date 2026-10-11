@@ -103,3 +103,18 @@ ENV WP_TESTS_DIR=/opt/wordpress-develop
 WORKDIR /opt/wordpress-develop
 ENTRYPOINT ["wp-tests-entrypoint"]
 CMD ["php", "./vendor/bin/phpunit", "--group", "cache"]
+
+# ---------------------------------------------------------------------------
+# commitlint: checks that commit messages follow Conventional Commits.
+# Separate from the PHP image because it is the only thing here that needs Node.
+# ---------------------------------------------------------------------------
+FROM node:22-alpine AS commitlint
+
+ENV NODE_PATH=/usr/local/lib/node_modules
+
+RUN apk add --no-cache git \
+    && npm install --global --no-fund --no-audit @commitlint/cli@21.2.3 @commitlint/config-conventional@21.2.3 \
+    && git config --system --add safe.directory /app
+
+WORKDIR /app
+ENTRYPOINT ["commitlint"]

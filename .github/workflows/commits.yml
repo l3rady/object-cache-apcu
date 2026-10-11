@@ -1,0 +1,22 @@
+name: commits
+
+# Every commit in a pull request must be a Conventional Commit: release-please
+# builds the changelog and the next version number from them. Pull requests are
+# rebase-merged, so the commits themselves land on main, not just the title.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  commits:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The pull request's own commits, not the merge commit GitHub builds.
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Check the commit messages (commitlint)
+        run: make commits COMMITS_FROM=${{ github.event.pull_request.base.sha }} COMMITS_TO=${{ github.event.pull_request.head.sha }}
