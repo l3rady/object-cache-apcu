@@ -25,7 +25,7 @@ This plugin is marked as a wordpress-dropin type and can be installed automatica
 Once the composer-dropin-installer is installed and configured in your project you can run `composer require l3rady/object-cache-apcu`. If set up correctly this should place the object-cache.php file into the your WordPress content dir, usually `wp-content`.
 
 ## Manual Installation ##
-1. Verify that you have PHP 7.2+ and a compatible APCu version installed.
+1. Verify that you have PHP 7.2+ and APCu 5.1 or newer installed. In the command line (WP-CLI, cron) APCu only works with `apc.enable_cli=1`; without it the cache keeps data in memory for that run only, and does not share it with the web server.
 2. Copy `object-cache.php` to your WordPress content directory (`wp-content/` by default).
 3. Done!
 
