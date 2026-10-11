@@ -27,10 +27,38 @@ This plugin is marked as a wordpress-dropin type and can be installed automatica
 
 Once the composer-dropin-installer is installed and configured in your project you can run `composer require l3rady/object-cache-apcu`. If set up correctly this should place the object-cache.php file into the your WordPress content dir, usually `wp-content`.
 
-## Manual Installation ##
-1. Verify that you have PHP 7.4+ and APCu 5.1 or newer installed. The command line (WP-CLI, cron) has its own separate cache and does not share it with the web server; read [Running the APCu object cache](docs/operations.md) before relying on `wp cache flush` or on changes made from the CLI. This drop-in is for single-server sites.
-2. Copy `object-cache.php` to your WordPress content directory (`wp-content/` by default).
-3. Done!
+## Installation ##
+Verify that you have PHP 7.4+ and APCu 5.1 or newer installed. The command line (WP-CLI, cron) has its own separate cache and does not share it with the web server; read [Running the APCu object cache](docs/operations.md) before relying on `wp cache flush` or on changes made from the CLI. This drop-in is for single-server sites.
+
+### With Composer ###
+A drop-in is one file that has to end up at `wp-content/object-cache.php`, but Composer installs whole packages into their own directory. Marking a package as `wordpress-dropin` is therefore not enough: `composer/installers` on its own puts this package in `wp-content/object-cache-apcu/`, where WordPress never loads it. Use [`koodimonni/composer-dropin-installer`](https://github.com/Koodimonni/Composer-Dropin-Installer), which copies named files out of a package:
+
+```
+composer require koodimonni/composer-dropin-installer l3rady/object-cache-apcu
+```
+
+Allow the plugin when Composer asks (or run `composer config allow-plugins.koodimonni/composer-dropin-installer true`), then tell it which file to copy and where, in your project's `composer.json`:
+
+```json
+"extra": {
+    "dropin-paths": {
+        "wp-content/": ["package:l3rady/object-cache-apcu:object-cache.php"]
+    }
+}
+```
+
+Run `composer install` and `object-cache.php` is in place.
+
+- **Name the file** as above (`package:vendor/name:file`). A rule that matches by type (`type:wordpress-dropin`) copies every file in the package archive that the installer does not skip, so name the file.
+- **The path is your real content directory**, relative to the project root: `web/app/` on a Bedrock-style layout, not `wp-content/`.
+- **Check for an existing drop-in first.** The installer overwrites `object-cache.php` without a warning, including another object cache's or one you edited by hand.
+- **Updates** (`composer update`) replace the file.
+- **Removing** the package (`composer remove`) does not delete the file: delete `object-cache.php` yourself, or WordPress keeps loading a drop-in that is no longer managed.
+- The installer's last release is from 2022. It works with Composer 2, and this project's CI installs the archive with it every night, so a break would be noticed.
+
+### Manually ###
+1. Copy `object-cache.php` to your WordPress content directory (`wp-content/` by default).
+2. Done!
 
 ## Operations ##
 [Running the APCu object cache](docs/operations.md) covers compatibility, the recommended `php.ini` settings, why the CLI and the web server do not share a cache, the local cache, flushing, multisite and expiry.
