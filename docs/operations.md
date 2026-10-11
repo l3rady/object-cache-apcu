@@ -11,9 +11,15 @@ known limitation that is going to change, the issue is linked.
 | WordPress | 7.1.3 (every pull request) and `trunk` (every night) |
 | APCu | 5.1.28 in CI. 5.1 or newer is required; older versions without `apcu_enabled()` fall back to the `apc.enabled` setting. |
 
-The drop-in implements the `WP_Object_Cache` API of current WordPress. Older
-WordPress versions are not tested; `Requires at least` in the README is a
-historical value, not a promise.
+The minimum is WordPress 7.1, the release line the WordPress project itself
+supports: its [Supported Versions](https://wordpress.org/documentation/article/supported-versions/)
+page says only the latest major release is actively supported (security fixes
+are backported to older branches as a courtesy, with no guarantee). This
+project tests that line and `trunk`, and raises the minimum when a new
+WordPress release makes the previous one unsupported.
+
+The drop-in uses the `WP_Object_Cache` API that WordPress has had since 6.1 and
+may well work on older versions, but they are not tested and not supported.
 
 ## One server only
 

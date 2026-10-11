@@ -1,7 +1,7 @@
 # WordPress APCu Object Cache Backend #
 Contributors: l3rady  
 Tags: APCu, object cache, backend, cache, performance, speed  
-Requires at least: 5.6  
+Requires at least: 7.1  
 Requires PHP: 7.4  
 Tested up to: 7.1.3  
 Stable tag: 1.2.0 <!-- x-release-please-version -->
