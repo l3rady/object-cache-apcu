@@ -39,6 +39,8 @@ Everything runs in Docker, so the only host requirements are `docker` and `docke
 
 ```
 make test                         # every test layer below
+make stan                         # static analysis (PHPStan level 8, WordPress stubs, parsed as PHP 7.4)
+make rector                       # show the PHP 7.4 syntax upgrades Rector would make (changes nothing)
 make test-apcu                    # plain APCu tests (PHPUnit, no WordPress), PHP_VERSION=7.4 to 8.5
 make test-wp                      # our WordPress-based tests, single site (real WordPress + database)
 make test-wp-ms                   # the same, as multisite
@@ -68,6 +70,7 @@ There are three layers, all in Docker:
 Every pull request runs, in the same Docker setup (see `.github/workflows`):
 
 - `lint`: the WordPress Coding Standards.
+- `ci` / `phpstan`: static analysis (`make stan`).
 - `ci` / `phpunit`: the plain APCu tests on every PHP version from 7.4 to 8.5.
 - `ci` / `wordpress`: the WordPress tests (single site and multisite) and core conformance on PHP 7.4 and 8.5, against WordPress 7.1.3.
 - A nightly run of the same WordPress jobs against WordPress `trunk`, to catch core changes early. Run it by hand from the Actions tab and give it a `wp_version` to test any tag or branch.
