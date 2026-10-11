@@ -144,7 +144,7 @@ function wp_cache_flush_runtime() {
  *
  * @param int|string $key What the contents in the cache are called.
  * @param string     $group Where the cache contents are grouped.
- * @param bool       $force Does nothing with APCu object cache.
+ * @param bool       $force Whether to read APCu even if this request has a local copy.
  * @param bool       &$found Whether key was found in the cache. Disambiguates a return of false, a storable value.
  *
  * @return bool|mixed False on failure to retrieve contents or the cache contents on success
@@ -836,7 +836,7 @@ class WP_Object_Cache {
 	 *
 	 * @param int|string $key What the contents in the cache are called.
 	 * @param string     $group Where the cache contents are grouped.
-	 * @param bool       $force Not used.
+	 * @param bool       $force Whether to read from APCu even if this request has a local copy, so a change made by another request is seen.
 	 * @param bool       &$success Whether the key was found in the cache.
 	 *
 	 * @return bool|mixed False on failure to retrieve contents or the cache contents on success
@@ -847,7 +847,7 @@ class WP_Object_Cache {
 		if ( ! $this->apcu_available || $this->is_non_persistent_group( $group ) ) {
 			$value = $this->get_np( $key, $success );
 		} else {
-			$value = $this->get_apcu( $key, $success );
+			$value = $this->get_apcu( $key, $success, $force );
 		}
 
 		if ( $success ) {
@@ -864,18 +864,23 @@ class WP_Object_Cache {
 	 *
 	 * @param string $key What the contents in the cache are called.
 	 * @param bool   &$success Whether the key was found in the cache.
+	 * @param bool   $force Read APCu even if there is a local copy, and refresh the copy.
 	 *
 	 * @return bool|mixed False on failure to retrieve contents or the cache contents on success
 	 */
-	private function get_apcu( $key, &$success = null ) {
-		if ( $this->local_cache_enabled && array_key_exists( $key, $this->local_cache )
+	private function get_apcu( $key, &$success = null, $force = false ) {
+		if ( ! $force && $this->local_cache_enabled && array_key_exists( $key, $this->local_cache )
 		) {
 			$success = true;
 			$value   = $this->local_cache[ $key ];
 		} else {
 			$value = apcu_fetch( $key, $success );
-			if ( $success && $this->local_cache_enabled ) {
-				$this->local_cache[ $key ] = $value;
+			if ( $this->local_cache_enabled ) {
+				if ( $success ) {
+					$this->local_cache[ $key ] = $value;
+				} else {
+					unset( $this->local_cache[ $key ] );
+				}
 			}
 		}
 

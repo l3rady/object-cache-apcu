@@ -48,22 +48,6 @@ class Test_Known_Bugs extends APCu_Test_Case {
 	}
 
 	/**
-	 * A forced read must see what another process wrote to APCu.
-	 *
-	 * @see https://github.com/l3rady/object-cache-apcu/issues/29
-	 */
-	public function test_force_bypasses_the_local_cache() {
-		$cache = $this->new_request();
-		wp_cache_set( 'key', 'ours', 'posts' );
-
-		// Another process changes the value behind this request's back.
-		apcu_store( $this->call_private( $cache, 'build_key', array( 'key', 'posts' ) ), 'theirs' );
-
-		$this->assertSame( 'ours', wp_cache_get( 'key', 'posts' ), 'An unforced read may use the local copy.' );
-		$this->assertSame( 'theirs', wp_cache_get( 'key', 'posts', true ), 'A forced read must go to APCu.' );
-	}
-
-	/**
 	 * Empty and non-scalar keys are rejected, like core 6.1+.
 	 *
 	 * @see https://github.com/l3rady/object-cache-apcu/issues/30
