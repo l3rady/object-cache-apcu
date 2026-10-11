@@ -30,11 +30,12 @@ function is_multisite() {
 
 /**
  * Stub: the real function reports whether cache additions are suspended.
+ * Tests switch it on with the global below.
  *
  * @return bool
  */
 function wp_suspend_cache_addition() {
-	return false;
+	return ! empty( $GLOBALS['apcu_test_suspend_additions'] );
 }
 
 /**

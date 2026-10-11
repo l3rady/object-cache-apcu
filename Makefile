@@ -16,7 +16,7 @@ export HOST_GID := $(shell id -g)
 COMPOSE := docker compose
 
 .DEFAULT_GOAL := help
-.PHONY: help build shell composer deps lint fix smoke test test-apcu test-known-bugs coverage test-wp test-wp-ms test-core stan rector rector-fix matrix clean
+.PHONY: help build shell composer deps lint fix smoke test test-apcu test-known-bugs coverage test-wp test-wp-ms test-core stan rector rector-fix matrix clean bench
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "} {printf "  %-12s %s\n", $$1, $$2}'
@@ -59,6 +59,9 @@ test-apcu: deps ## Run the plain APCu tests (PHPUnit, no WordPress)
 
 test-known-bugs: deps ## Run tests that document open bugs (they are expected to fail)
 	$(COMPOSE) run --build --rm php vendor/bin/phpunit --exclude-group none --group known-bug $(ARGS)
+
+bench: deps ## Time the *_multiple functions against loops of single calls
+	$(COMPOSE) run --build --rm php php tests/bench/multiple.php
 
 coverage: deps ## Run the plain APCu tests with a coverage report (pcov)
 	$(COMPOSE) run --build --rm coverage vendor/bin/phpunit --coverage-text $(ARGS)
