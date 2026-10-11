@@ -103,9 +103,7 @@ class Test_Versions extends APCu_Test_Case {
 		// A value larger than all of APCu's memory is refused.
 		$too_big = str_repeat( 'x', 80 * 1024 * 1024 );
 		set_error_handler( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- APCu warns that it cannot allocate memory.
-			static function () {
-				return true;
-			}
+			static fn() => true
 		);
 		$result = wp_cache_set_multiple( array( 'key' => $too_big ), 'posts' );
 		restore_error_handler();
