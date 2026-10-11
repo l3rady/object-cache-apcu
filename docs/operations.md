@@ -74,13 +74,15 @@ Define `WP_APCU_LOCAL_CACHE` as `false` to turn it off.
 
 | Call | Effect |
 |---|---|
-| `wp_cache_flush()` | Empties **all** of APCu for this PHP pool, including other applications that use APCu on the same server ([#34](https://github.com/l3rady/object-cache-apcu/issues/34)). |
+| `wp_cache_flush()` | Makes everything this install cached unreachable. Other applications and other installs that use the same APCu are not touched. Nothing is deleted: the old entries stay until they expire or APCu needs the space (see `apc.ttl`). Define `WP_APCU_FLUSH_HARD` as `true` to delete them at once as well. |
 | `wp_cache_flush_group( $group )` | Makes the group's current entries unreachable. They stay in memory until APCu removes them. |
 | `wp_cache_flush_site( $site )` | The same for every group of the site, and the global groups. |
 | `wp_cache_flush_runtime()` | Empties this request's memory only. |
+| `$wp_object_cache->purge()` | Deletes every entry this install has in APCu right now, and returns how many. Needs `APCUIterator`, which APCu provides. |
 
-Flushing a group or site works by changing a version token that is part of every
-key. If APCu itself removes that token (memory pressure), the group or site is
+Flushing works by changing a version token that is part of every key: one for the whole install, one per site and one per group. Memory used by the old entries is only given back when APCu removes them, so a site that flushes often should keep `apc.ttl` above `0`, or turn on `WP_APCU_FLUSH_HARD`.
+
+If APCu itself removes one of these tokens (memory pressure), what it covered is
 treated as flushed: you lose its cached data rather than risk serving data that
 was meant to be gone.
 

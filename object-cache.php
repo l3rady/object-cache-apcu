@@ -453,6 +453,20 @@ class WP_Object_Cache {
 	private array $site_versions = array();
 
 	/**
+	 * Remembered version of this install's whole cache, changed by flush().
+	 *
+	 * @var string|null
+	 */
+	private ?string $epoch = null;
+
+	/**
+	 * Whether flush() also deletes the old entries (WP_APCU_FLUSH_HARD).
+	 *
+	 * @var bool
+	 */
+	private bool $flush_hard;
+
+	/**
 	 * Properties set from outside under names this class does not use, as core allows.
 	 *
 	 * @var array<string, mixed>
@@ -541,6 +555,10 @@ class WP_Object_Cache {
 		// Define WP_APCU_LOCAL_CACHE as false to disable the local array cache
 		// and force all cache to be returned from APCu.
 		$this->local_cache_enabled = defined( 'WP_APCU_LOCAL_CACHE' ) ? (bool) WP_APCU_LOCAL_CACHE : true;
+
+		// Define WP_APCU_FLUSH_HARD as true to have flush() delete this install's old
+		// entries at once instead of leaving them for APCu to remove.
+		$this->flush_hard = defined( 'WP_APCU_FLUSH_HARD' ) && (bool) WP_APCU_FLUSH_HARD;
 
 		$this->abs_path = md5( ABSPATH );
 
@@ -932,22 +950,54 @@ class WP_Object_Cache {
 	}
 
 	/**
-	 * Clears the object cache of all data
+	 * Clears the object cache of all data.
+	 *
+	 * Only this install's data: other applications, and other installs that use the same
+	 * APCu, keep theirs. Nothing is deleted. Changing the epoch that is part of every key
+	 * makes the old entries unreachable, and APCu removes them as they expire or space is
+	 * needed. Define WP_APCU_FLUSH_HARD as true to also delete them straight away.
 	 *
 	 * @return bool Always returns true
 	 */
 	public function flush() {
-		$this->non_persistent_cache = array();
-
-		if ( $this->local_cache_enabled ) {
-			$this->local_cache = array();
-		}
+		$this->flush_runtime();
 
 		if ( $this->apcu_available ) {
-			apcu_clear_cache();
+			if ( $this->flush_hard ) {
+				$this->purge();
+			}
+
+			$this->epoch = $this->new_cache_version();
+			$this->set_cache_version( $this->get_cache_version_key( 'Epoch', 0 ), $this->epoch );
 		}
 
 		return true;
+	}
+
+	/**
+	 * Deletes every entry this install has in APCu, now.
+	 *
+	 * Entries of other applications and of installs with a different key salt or
+	 * ABSPATH are left alone. This is what WP_APCU_FLUSH_HARD adds to flush().
+	 *
+	 * @return int How many entries were deleted.
+	 */
+	public function purge(): int {
+		if ( ! $this->apcu_available || ! class_exists( 'APCUIterator' ) ) {
+			return 0;
+		}
+
+		$this->flush_runtime();
+
+		$deleted  = 0;
+		$iterator = new APCUIterator( '/^' . preg_quote( $this->key_salt . ':' . $this->abs_path . ':', '/' ) . '/', APC_ITER_KEY );
+		foreach ( $iterator as $key => $unused ) {
+			if ( apcu_delete( $key ) ) {
+				++$deleted;
+			}
+		}
+
+		return $deleted;
 	}
 
 	/**
@@ -962,6 +1012,7 @@ class WP_Object_Cache {
 		$this->local_cache          = array();
 		$this->group_versions       = array();
 		$this->site_versions        = array();
+		$this->epoch                = null;
 
 		return true;
 	}
@@ -1171,13 +1222,24 @@ class WP_Object_Cache {
 	/**
 	 * Build cache version key
 	 *
-	 * @param string $type Type of key, for site or group.
+	 * @param string $type Type of key: epoch, site or group.
 	 * @param mixed  $value the group or site id.
 	 *
 	 * @return string The key
 	 */
 	private function get_cache_version_key( string $type, $value ): string {
 		return $this->key_salt . ':' . $this->abs_path . ':' . $type . ':' . $value;
+	}
+
+	/**
+	 * Gets the version of this install's whole cache.
+	 *
+	 * @return string
+	 */
+	private function get_epoch(): string {
+		$this->epoch ??= $this->get_cache_version( $this->get_cache_version_key( 'Epoch', 0 ) );
+
+		return $this->epoch;
 	}
 
 	/**
@@ -1494,7 +1556,7 @@ class WP_Object_Cache {
 		$group_version = $this->get_group_cache_version( $group );
 		$site_version  = $this->get_site_cache_version( $prefix );
 
-		return $this->key_salt . ':' . $this->abs_path . ':' . $prefix . ':' . $group . ':' . $key . ':v' . $site_version . '.' . $group_version;
+		return $this->key_salt . ':' . $this->abs_path . ':' . $prefix . ':' . $group . ':' . $key . ':v' . $this->get_epoch() . '.' . $site_version . '.' . $group_version;
 	}
 
 	/**
