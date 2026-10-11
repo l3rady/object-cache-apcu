@@ -34,6 +34,15 @@ jobs:
       - name: Static analysis (PHPStan)
         run: make stan
 
+  # What Composer users get: the dist archive installed with the drop-in installer.
+  # Also runs nightly, since it depends on a third-party installer from Packagist.
+  composer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Composer install of the dist archive
+        run: make test-composer
+
   # Rector must have nothing left to upgrade to PHP 7.4.
   rector:
     if: github.event_name != 'schedule'
