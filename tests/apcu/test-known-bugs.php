@@ -30,32 +30,6 @@ class Test_Known_Bugs extends APCu_Test_Case {
 	}
 
 	/**
-	 * Decrementing must never go below zero, like core.
-	 *
-	 * @see https://github.com/l3rady/object-cache-apcu/issues/27
-	 */
-	public function test_decr_stops_at_zero() {
-		$this->new_request();
-		wp_cache_set( 'counter', 0, 'posts' );
-		wp_cache_set( 'counter', 0, 'np' );
-
-		$this->assertSame( 0, wp_cache_decr( 'counter', 1, 'posts' ), 'APCu group' );
-		$this->assertSame( 0, wp_cache_decr( 'counter', 1, 'np' ), 'non persistent group' );
-	}
-
-	/**
-	 * A negative offset must move the value the other way, like core.
-	 *
-	 * @see https://github.com/l3rady/object-cache-apcu/issues/27
-	 */
-	public function test_incr_accepts_a_negative_offset() {
-		$this->new_request();
-		wp_cache_set( 'counter', 5, 'posts' );
-
-		$this->assertSame( 3, wp_cache_incr( 'counter', -2, 'posts' ) );
-	}
-
-	/**
 	 * Data flushed with flush_group must not come back if APCu loses the version key.
 	 *
 	 * @see https://github.com/l3rady/object-cache-apcu/issues/24

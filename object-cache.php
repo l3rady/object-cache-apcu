@@ -634,16 +634,7 @@ class WP_Object_Cache {
 	 * @return false|int False on failure, the item's new value on success.
 	 */
 	private function decr_apcu( $key, $offset ) {
-		$this->get_apcu( $key, $success );
-		if ( ! $success ) {
-			return false;
-		}
-
-		$value = apcu_dec( $key, max( (int) $offset, 0 ) );
-		if ( false !== $value && $this->local_cache_enabled ) {
-			$this->local_cache[ $key ] = $value;
-		}
-		return $value;
+		return $this->change_apcu( $key, -1 * (int) $offset );
 	}
 
 	/**
@@ -655,16 +646,7 @@ class WP_Object_Cache {
 	 * @return false|int False on failure, the item's new value on success.
 	 */
 	private function decr_np( $key, $offset ) {
-		if ( ! $this->exists_np( $key ) ) {
-			return false;
-		}
-
-		$offset = max( (int) $offset, 0 );
-		$value  = $this->get_np( $key );
-		$value  = is_numeric( $value ) ? $value : 0;
-		$value -= $offset;
-
-		return $this->set_np( $key, $value );
+		return $this->change_np( $key, -1 * (int) $offset );
 	}
 
 	/**
@@ -1036,16 +1018,7 @@ class WP_Object_Cache {
 	 * @return false|int False on failure, the item's new value on success.
 	 */
 	private function incr_apcu( $key, $offset ) {
-		$this->get_apcu( $key, $success );
-		if ( ! $success ) {
-			return false;
-		}
-
-		$value = apcu_inc( $key, max( (int) $offset, 0 ) );
-		if ( false !== $value && $this->local_cache_enabled ) {
-			$this->local_cache[ $key ] = $value;
-		}
-		return $value;
+		return $this->change_apcu( $key, (int) $offset );
 	}
 
 	/**
@@ -1057,16 +1030,61 @@ class WP_Object_Cache {
 	 * @return false|int False on failure, the item's new value on success.
 	 */
 	private function incr_np( $key, $offset ) {
+		return $this->change_np( $key, (int) $offset );
+	}
+
+	/**
+	 * Adds a signed amount to a numeric APCu cache item, like core: a value that
+	 * is not numeric counts as 0 and the result never goes below 0.
+	 *
+	 * The change is applied with a compare and swap so that concurrent requests
+	 * do not lose updates. The item keeps the lifetime it was stored with.
+	 *
+	 * @param string $key   The cache key.
+	 * @param int    $delta Amount to add; negative to subtract.
+	 *
+	 * @return false|int False if the item does not exist, otherwise its new value.
+	 */
+	private function change_apcu( $key, $delta ) {
+		for ( $attempt = 0; $attempt < 10; $attempt++ ) {
+			$current = apcu_fetch( $key, $success );
+			if ( ! $success ) {
+				return false;
+			}
+
+			$value = max( 0, ( is_numeric( $current ) ? $current : 0 ) + $delta );
+
+			if ( is_int( $current ) ? apcu_cas( $key, $current, $value ) : apcu_store( $key, $value ) ) {
+				if ( $this->local_cache_enabled ) {
+					$this->local_cache[ $key ] = $value;
+				}
+
+				return $value;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Adds a signed amount to a numeric non persistent cache item, like core.
+	 *
+	 * @param string $key   The cache key.
+	 * @param int    $delta Amount to add; negative to subtract.
+	 *
+	 * @return false|int False if the item does not exist, otherwise its new value.
+	 */
+	private function change_np( $key, $delta ) {
 		if ( ! $this->exists_np( $key ) ) {
 			return false;
 		}
 
-		$offset = max( (int) $offset, 0 );
-		$value  = $this->get_np( $key );
-		$value  = is_numeric( $value ) ? $value : 0;
-		$value += $offset;
+		$value = $this->get_np( $key );
+		$value = max( 0, ( is_numeric( $value ) ? $value : 0 ) + $delta );
 
-		return $this->set_np( $key, $value );
+		$this->set_np( $key, $value );
+
+		return $value;
 	}
 
 	/**
