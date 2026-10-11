@@ -1,0 +1,37 @@
+name: Bug report
+description: Something does not work as it should
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The smallest code or steps that show the problem.
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: This drop-in, WordPress, PHP, APCu.
+      placeholder: "1.2.0, WordPress 7.1.3, PHP 8.3, APCu 5.1.28"
+    validations:
+      required: true
+  - type: dropdown
+    id: sapi
+    attributes:
+      label: Where does it happen?
+      options:
+        - Web (PHP-FPM / Apache)
+        - WP-CLI or cron
+        - Both
+        - Not sure
+  - type: textarea
+    id: config
+    attributes:
+      label: Relevant settings
+      description: "`apc.*` php.ini settings, `WP_APCU_LOCAL_CACHE`, `WP_APCU_KEY_SALT`, multisite or not."
