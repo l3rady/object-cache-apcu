@@ -156,4 +156,136 @@ class Test_Stats extends APCu_Test_Case {
 		$this->assertMatchesRegularExpression( '/APCu Hit Rate:<\/strong> [\d.]+%/', $output );
 		$this->assertStringContainsString( '<strong>APCu Expunges:</strong> ', $output );
 	}
+
+	/**
+	 * The APCu numbers are the ones APCu reports, worked out and formatted as documented.
+	 */
+	public function test_apcu_numbers_are_exact() {
+		$cache = $this->new_request();
+		wp_cache_set( 'a', 'value', 'posts' );
+		// Read straight from APCu: one hit, then more misses than hits.
+		wp_cache_get( 'a', 'posts', true );
+		for ( $i = 0; $i < 5; $i++ ) {
+			wp_cache_get( 'missing' . $i, 'posts', true );
+		}
+
+		$output = $this->stats( $cache );
+
+		$info   = apcu_cache_info( true );
+		$sma    = apcu_sma_info( true );
+		$total  = $sma['seg_size'] * $sma['num_seg'];
+		$used   = $total - $sma['avail_mem'];
+		$hits   = $info['num_hits'];
+		$misses = $info['num_misses'];
+		$this->assertGreaterThan( 0, $hits );
+		$this->assertGreaterThan( $hits, $misses );
+
+		$this->assertStringContainsString( '<strong>APCu Entries:</strong> ' . $info['num_entries'] . '<br />', $output );
+		$this->assertStringContainsString(
+			'<strong>APCu Memory:</strong> ' . number_format( $used / MB_IN_BYTES, 1 ) . ' MB used of ' . number_format( $total / MB_IN_BYTES, 1 ) . ' MB<br />',
+			$output
+		);
+		$this->assertStringContainsString(
+			'<strong>APCu Hit Rate:</strong> ' . number_format( $hits / ( $hits + $misses ) * 100, 1 ) . '%<br />',
+			$output
+		);
+		$this->assertStringContainsString( '<strong>APCu Expunges:</strong> ' . $info['expunges'] . '<br />', $output );
+		$this->assertStringEndsWith( '<strong>APCu Expunges:</strong> ' . $info['expunges'] . '<br /></p>', $output );
+	}
+
+	/**
+	 * With no reads at all the hit rate is 0, not a division by zero.
+	 */
+	public function test_hit_rate_without_any_reads() {
+		$cache = $this->new_request();
+
+		$output = $this->stats( $cache );
+
+		$this->assertStringContainsString( '<strong>APCu Hit Rate:</strong> 0.0%<br />', $output );
+	}
+
+	/**
+	 * Group sizes are shown in kilobytes with two decimals.
+	 */
+	public function test_group_sizes_have_two_decimals() {
+		$cache = $this->new_request( false );
+		wp_cache_set( 'a', str_repeat( 'x', 1500 ), 'posts' );
+
+		$grouped = $this->call_private( $cache, 'get_grouped_cache' );
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize
+		$size = strlen( serialize( $grouped['posts'] ) );
+
+		$this->assertStringContainsString(
+			'<li><strong>Group:</strong> posts - ( ' . number_format( $size / KB_IN_BYTES, 2 ) . 'k )</li>',
+			$this->stats( $cache )
+		);
+	}
+
+	/**
+	 * A key belongs to the longest group name that matches, and to no other.
+	 */
+	public function test_a_key_is_filed_under_one_group_only() {
+		$cache = $this->new_request();
+		wp_cache_set( 'y', 'one', 'a' );
+		wp_cache_set( 'x', 'two', 'a:b' );
+
+		$this->assertSame(
+			array(
+				'a'   => array( 'y' => 'one' ),
+				'a:b' => array( 'x' => 'two' ),
+			),
+			$this->call_private( $cache, 'get_grouped_cache' )
+		);
+	}
+
+	/**
+	 * The longest matching group wins whichever group was used first.
+	 */
+	public function test_the_longest_group_wins_whatever_the_order() {
+		$cache = $this->new_request();
+		wp_cache_set( 'x', 'two', 'a:b' );
+		wp_cache_set( 'y', 'one', 'a' );
+		wp_cache_set( 'z', 'three', 'a:b:c' );
+
+		$this->assertSame(
+			array(
+				'a:b'   => array( 'x' => 'two' ),
+				'a'     => array( 'y' => 'one' ),
+				'a:b:c' => array( 'z' => 'three' ),
+			),
+			$this->call_private( $cache, 'get_grouped_cache' )
+		);
+	}
+
+	/**
+	 * A key salt or group name made of regular expression characters is matched literally.
+	 */
+	public function test_special_characters_in_the_salt_and_group_names() {
+		$cache = $this->new_request();
+		$this->set_private( $cache, 'key_salt', 'a.b+c(d)' );
+		wp_cache_set( 'k', 'one', 'g(1)' );
+		wp_cache_set( 'k', 'two', 'g.1' );
+		wp_cache_set( 'k', 'three', 'gx1' );
+
+		$this->assertSame(
+			array(
+				'g(1)' => array( 'k' => 'one' ),
+				'g.1'  => array( 'k' => 'two' ),
+				'gx1'  => array( 'k' => 'three' ),
+			),
+			$this->call_private( $cache, 'get_grouped_cache' )
+		);
+	}
+
+	/**
+	 * Entries of another install that share the cache's start are not counted as ours.
+	 */
+	public function test_another_installs_entries_are_not_listed() {
+		$cache = $this->new_request();
+		$this->set_private( $cache, 'key_salt', 'abbcd' );
+		$cache->set( 'k', 'mine', 'posts' );
+		$this->set_private( $cache, 'key_salt', 'a.b+c(d)' );
+
+		$this->assertSame( array(), $this->call_private( $cache, 'get_grouped_cache' ) );
+	}
 }

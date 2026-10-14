@@ -402,4 +402,182 @@ class Test_Multiple extends APCu_Test_Case {
 		$this->assertSame( array(), wp_cache_get_multiple( array(), $group ) );
 		$this->assertSame( array(), wp_cache_delete_multiple( array(), $group ) );
 	}
+
+	/**
+	 * Keys that are not allowed, mixed with good ones.
+	 *
+	 * @return array
+	 */
+	private function mixed_keys() {
+		return array( null, 'a', 1.5, array( 'x' ), 'b', true, 5 );
+	}
+
+	/**
+	 * Invalid keys are left out of the answers of every multiple function and do not stop the valid ones.
+	 *
+	 * @dataProvider scenarios
+	 *
+	 * @param bool   $apcu  Use APCu.
+	 * @param bool   $local Use the local cache.
+	 * @param string $group A group persistent under that configuration.
+	 */
+	public function test_invalid_keys_are_left_out_of_the_answers( $apcu, $local, $group ) {
+		$this->new_request( $apcu, $local );
+		wp_cache_set( 'a', 'one', $group );
+		wp_cache_set( 5, 'five', $group );
+
+		$this->assertSame(
+			array(
+				'a' => 'one',
+				'b' => false,
+				5   => 'five',
+			),
+			wp_cache_get_multiple( $this->mixed_keys(), $group )
+		);
+		$this->assertSame(
+			array(
+				'a' => true,
+				'b' => false,
+				5   => true,
+			),
+			wp_cache_delete_multiple( $this->mixed_keys(), $group )
+		);
+		$this->assertFalse( wp_cache_get( 'a', $group ) );
+		$this->assertFalse( wp_cache_get( 5, $group ) );
+	}
+
+	/**
+	 * An invalid key first in the list does not stop the keys after it from being deleted.
+	 *
+	 * @dataProvider scenarios
+	 *
+	 * @param bool   $apcu  Use APCu.
+	 * @param bool   $local Use the local cache.
+	 * @param string $group A group persistent under that configuration.
+	 */
+	public function test_delete_multiple_goes_on_after_an_invalid_key( $apcu, $local, $group ) {
+		$this->new_request( $apcu, $local );
+		wp_cache_set( 'a', 'one', $group );
+		wp_cache_set( 'b', 'two', $group );
+
+		$this->assertSame(
+			array(
+				'a' => true,
+				'b' => true,
+			),
+			wp_cache_delete_multiple( array( null, 'a', 'b' ), $group )
+		);
+		$this->assertFalse( wp_cache_get( 'a', $group, true ) );
+		$this->assertFalse( wp_cache_get( 'b', $group, true ) );
+	}
+
+	/**
+	 * Only invalid keys: nothing is written, and every key is reported as failed.
+	 *
+	 * @dataProvider scenarios
+	 *
+	 * @param bool   $apcu  Use APCu.
+	 * @param bool   $local Use the local cache.
+	 * @param string $group A group persistent under that configuration.
+	 */
+	public function test_only_invalid_keys( $apcu, $local, $group ) {
+		$this->new_request( $apcu, $local );
+		$before = apcu_cache_info( true )['num_entries'];
+
+		$this->assertSame(
+			array( '' => false ),
+			wp_cache_set_multiple( array( '' => 1 ), $group )
+		);
+		$this->assertSame(
+			array( '' => false ),
+			wp_cache_add_multiple( array( '' => 1 ), $group )
+		);
+		$this->assertSame(
+			array(
+				''  => false,
+				' ' => false,
+			),
+			wp_cache_add_multiple(
+				array(
+					''  => 1,
+					' ' => 2,
+				),
+				$group
+			)
+		);
+		$this->assertSame( array(), wp_cache_get_multiple( array( null ), $group ) );
+		$this->assertSame( array(), wp_cache_delete_multiple( array( null ), $group ) );
+		$this->assertSame( $before, apcu_cache_info( true )['num_entries'] );
+	}
+
+	/**
+	 * Non persistent groups, and everything when APCu is off, never reach APCu through the multiple functions.
+	 */
+	public function test_multiple_functions_do_not_touch_apcu_when_it_is_not_used() {
+		foreach ( array( array( false, 'np' ), array( false, 'posts' ), array( true, 'np' ) ) as $case ) {
+			apcu_clear_cache();
+			$cache = $this->new_request( $case[0] );
+			$group = $case[1];
+
+			// Something sits in APCu where a batched read or delete would look.
+			$planted = $this->call_private( $cache, 'build_key', array( 'a', $group ) );
+			apcu_store( $planted, 'planted' );
+			$before = apcu_cache_info( true )['num_entries'];
+
+			$this->assertSame( array( 'a' => false ), wp_cache_get_multiple( array( 'a' ), $group ), $group );
+			$this->assertSame( array( 'a' => true ), wp_cache_set_multiple( array( 'a' => 'set' ), $group ), $group );
+			$this->assertSame( array( 'a' => false ), wp_cache_add_multiple( array( 'a' => 'add' ), $group ), $group );
+			$this->assertSame( array( 'a' => 'set' ), wp_cache_get_multiple( array( 'a' ), $group ), $group );
+			$this->assertSame( array( 'new' => true ), wp_cache_add_multiple( array( 'new' => 'add' ), $group ), $group );
+			$this->assertFalse( apcu_exists( $this->call_private( $cache, 'build_key', array( 'new', $group ) ) ), $group );
+			$this->assertSame( array( 'a' => true ), wp_cache_delete_multiple( array( 'a' ), $group ), $group );
+
+			$this->assertSame( 'planted', apcu_fetch( $planted ), $group );
+			$this->assertSame( $before, apcu_cache_info( true )['num_entries'], $group );
+		}
+	}
+
+	/**
+	 * Setting is not an addition, so suspending additions does not stop set_multiple().
+	 *
+	 * @dataProvider scenarios
+	 *
+	 * @param bool   $apcu  Use APCu.
+	 * @param bool   $local Use the local cache.
+	 * @param string $group A group persistent under that configuration.
+	 */
+	public function test_set_multiple_ignores_suspended_additions( $apcu, $local, $group ) {
+		$this->new_request( $apcu, $local );
+		$GLOBALS['apcu_test_suspend_additions'] = true;
+
+		$this->assertSame( array( 'a' => true ), wp_cache_set_multiple( array( 'a' => 1 ), $group ) );
+
+		unset( $GLOBALS['apcu_test_suspend_additions'] );
+		$this->assertSame( 1, wp_cache_get( 'a', $group ) );
+	}
+
+	/**
+	 * Called on the cache without the optional arguments, the multiple functions have no expiry and no forced read.
+	 */
+	public function test_defaults_of_the_multiple_functions() {
+		$cache = $this->new_request();
+		$cache->add_multiple( array( 'a' => 1 ) );
+		$cache->set_multiple( array( 'b' => 2 ) );
+
+		$ttls = array();
+		foreach ( apcu_cache_info( false )['cache_list'] as $entry ) {
+			$ttls[ $entry['info'] ] = $entry['ttl'];
+		}
+		$this->assertSame( 0, $ttls[ $this->call_private( $cache, 'build_key', array( 'a', 'default' ) ) ] );
+		$this->assertSame( 0, $ttls[ $this->call_private( $cache, 'build_key', array( 'b', 'default' ) ) ] );
+
+		// The local copy is used: a change made in APCu by someone else is not seen unless forced.
+		apcu_store( $this->call_private( $cache, 'build_key', array( 'a', 'default' ) ), 'changed elsewhere' );
+		$this->assertSame( array( 'a' => 1 ), $cache->get_multiple( array( 'a' ) ) );
+		$this->assertSame( array( 'a' => 'changed elsewhere' ), $cache->get_multiple( array( 'a' ), 'default', true ) );
+
+		// The same through the non persistent path.
+		$cache->set( 'n', 'local', 'np' );
+		$this->assertSame( array( 'n' => 'local' ), $cache->get_multiple( array( 'n' ), 'np' ) );
+	}
 }

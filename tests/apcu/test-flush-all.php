@@ -223,4 +223,53 @@ class Test_Flush_All extends APCu_Test_Case {
 	public function test_flush_hard_is_off_by_default() {
 		$this->assertFalse( $this->get_private( $this->new_request(), 'flush_hard' ) );
 	}
+
+	/**
+	 * Without APCu nothing is purged, even when APCu holds entries with this install's key.
+	 */
+	public function test_purge_without_apcu_leaves_apcu_alone() {
+		$cache = $this->new_request();
+		$cache->set( 'a', 1, 'posts' );
+		$this->set_private( $cache, 'apcu_available', false );
+
+		$this->assertSame( 0, $cache->purge() );
+
+		$this->set_private( $cache, 'apcu_available', true );
+		$this->assertSame( 1, $cache->get( 'a', 'posts', true ) );
+	}
+
+	/**
+	 * Purging an install that has nothing stored reports that nothing was deleted.
+	 */
+	public function test_purge_with_nothing_to_delete_returns_zero() {
+		$cache = $this->new_request();
+
+		$this->assertSame( 0, $cache->purge() );
+	}
+
+	/**
+	 * A key salt made of regular expression characters is matched as text, and only
+	 * the install with exactly that salt and path is purged.
+	 */
+	public function test_purge_matches_the_salt_literally() {
+		$cache = $this->new_request();
+		$this->set_private( $cache, 'key_salt', 'a.b+c(d)' );
+		$cache->set( 'k', 'mine', 'posts' );
+
+		$base = $this->get_private( $cache, 'abs_path' );
+
+		// Installs whose keys a pattern built without quoting, or without the final colon, would also match.
+		$lookalike = new WP_Object_Cache();
+		$this->set_private( $lookalike, 'key_salt', 'abbcd' );
+		$lookalike->set( 'k', 'lookalike', 'posts' );
+		$longer = new WP_Object_Cache();
+		$this->set_private( $longer, 'key_salt', 'a.b+c(d):' . $base . 'more' );
+		$longer->set( 'k', 'longer', 'posts' );
+
+		$this->assertGreaterThanOrEqual( 2, $cache->purge() );
+
+		$this->assertFalse( $cache->get( 'k', 'posts', true ) );
+		$this->assertSame( 'lookalike', $lookalike->get( 'k', 'posts', true ) );
+		$this->assertSame( 'longer', $longer->get( 'k', 'posts', true ) );
+	}
 }
