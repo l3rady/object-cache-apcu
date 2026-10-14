@@ -34,6 +34,16 @@ jobs:
       - name: Static analysis (PHPStan)
         run: make stan
 
+  # Line coverage of object-cache.php by the plain APCu tests must not fall below
+  # COVERAGE_MIN (see the Makefile).
+  coverage:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Coverage of the plain APCu tests
+        run: make coverage
+
   # What Composer users get: the dist archive installed with the drop-in installer.
   # Also runs nightly, since it depends on a third-party installer from Packagist.
   composer:

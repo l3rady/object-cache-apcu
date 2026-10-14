@@ -17,3 +17,5 @@ Thanks for helping. Everything runs in Docker, so the only things you need are
   `fix/42-null-check`), and reference the issue in the pull request with
   `Closes #<number>`.
 - A bug fix needs a test that fails without the fix.
+- New code needs tests: `make coverage` (and CI) fails if line coverage of
+  `object-cache.php` falls below 98%.

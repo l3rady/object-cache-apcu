@@ -8,6 +8,9 @@ PHP_VERSION ?= 8.3
 WP_VERSION  ?= 7.1.3
 MATRIX      ?= 7.4 8.0 8.1 8.2 8.3 8.4 8.5
 
+# Minimum line coverage (%) of object-cache.php that `make coverage` and CI require.
+COVERAGE_MIN ?= 98
+
 export PHP_VERSION
 export WP_VERSION
 export HOST_UID := $(shell id -u)
@@ -73,8 +76,8 @@ test-composer: deps ## Install the dist archive with Composer and check what lan
 bench: deps ## Time the *_multiple functions against loops of single calls
 	$(COMPOSE) run --build --rm php php tests/bench/multiple.php
 
-coverage: deps ## Run the plain APCu tests with a coverage report (pcov)
-	$(COMPOSE) run --build --rm coverage vendor/bin/phpunit --coverage-text $(ARGS)
+coverage: deps ## Run the plain APCu tests with coverage (pcov); fails below COVERAGE_MIN
+	$(COMPOSE) run --build --rm -e COVERAGE_MIN=$(COVERAGE_MIN) coverage sh docker/coverage.sh $(ARGS)
 
 test-wp: ## Run our WordPress-based tests against a real WordPress (single site)
 	$(COMPOSE) run --build --rm wp-tests sh /opt/object-cache-apcu/docker/wp-tests.sh $(ARGS)
