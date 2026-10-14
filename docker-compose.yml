@@ -60,6 +60,17 @@ services:
       - .:/app
       - composer-cache:/home/dev/.composer/cache
 
+  # Mutation testing with Infection: `make mutation`.
+  mutation:
+    build:
+      <<: *dev-build
+      target: mutation
+    image: object-cache-apcu:php${PHP_VERSION:-8.3}-mutation
+    working_dir: /app
+    volumes:
+      - .:/app
+      - composer-cache:/home/dev/.composer/cache
+
   db:
     image: mariadb:11
     environment:

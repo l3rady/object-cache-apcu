@@ -44,6 +44,16 @@ jobs:
       - name: Coverage of the plain APCu tests
         run: make coverage
 
+  # Mutation testing is slow and has false positives, so it runs nightly (and by hand)
+  # and not on every pull request. It fails below the minimums in infection.json5.
+  mutation:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Mutation testing (Infection)
+        run: make mutation
+
   # What Composer users get: the dist archive installed with the drop-in installer.
   # Also runs nightly, since it depends on a third-party installer from Packagist.
   composer:

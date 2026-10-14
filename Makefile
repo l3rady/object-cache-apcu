@@ -23,7 +23,7 @@ COMMITS_FROM ?= origin/main
 COMMITS_TO   ?= HEAD
 
 .DEFAULT_GOAL := help
-.PHONY: help build shell composer deps lint commits fix smoke test test-apcu test-known-bugs coverage test-wp test-wp-ms test-core test-composer stan rector rector-fix matrix clean bench
+.PHONY: help build shell composer deps lint commits fix smoke test test-apcu test-known-bugs coverage mutation test-wp test-wp-ms test-core test-composer stan rector rector-fix matrix clean bench
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "} {printf "  %-12s %s\n", $$1, $$2}'
@@ -78,6 +78,9 @@ bench: deps ## Time the *_multiple functions against loops of single calls
 
 coverage: deps ## Run the plain APCu tests with coverage (pcov); fails below COVERAGE_MIN
 	$(COMPOSE) run --build --rm -e COVERAGE_MIN=$(COVERAGE_MIN) coverage sh docker/coverage.sh $(ARGS)
+
+mutation: deps ## Mutation testing with Infection (slow): changes the code and checks a test fails
+	$(COMPOSE) run --build --rm mutation infection --threads=max --show-mutations --no-progress $(ARGS)
 
 test-wp: ## Run our WordPress-based tests against a real WordPress (single site)
 	$(COMPOSE) run --build --rm wp-tests sh /opt/object-cache-apcu/docker/wp-tests.sh $(ARGS)
