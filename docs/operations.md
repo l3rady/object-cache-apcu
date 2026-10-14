@@ -81,7 +81,7 @@ Define `WP_APCU_LOCAL_CACHE` as `false` to turn it off.
 | Call | Effect |
 |---|---|
 | `wp_cache_flush()` | Makes everything this install cached unreachable. Other applications and other installs that use the same APCu are not touched. Nothing is deleted: the old entries stay until they expire or APCu needs the space (see `apc.ttl`). Define `WP_APCU_FLUSH_HARD` as `true` to delete them at once as well. |
-| `wp_cache_flush_group( $group )` | Makes the group's current entries unreachable. They stay in memory until APCu removes them. |
+| `wp_cache_flush_group( $group )` | Makes the group's current entries unreachable. They stay in memory until APCu removes them. On multisite this covers the group on every site, as in core. |
 | `wp_cache_flush_site( $site )` | The same for every group of the site, and the global groups. |
 | `wp_cache_flush_runtime()` | Empties this request's memory only. |
 | `$wp_object_cache->purge()` | Deletes every entry this install has in APCu right now, and returns how many. Needs `APCUIterator`, which APCu provides. |
