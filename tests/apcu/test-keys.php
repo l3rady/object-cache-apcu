@@ -166,4 +166,31 @@ class Test_Keys extends APCu_Test_Case {
 		);
 		$this->assertCount( 2, $GLOBALS['apcu_test_doing_it_wrong'] );
 	}
+
+	/**
+	 * The key written to APCu is salt:path:site:group:key:v{epoch}.{site version}.{group version}.
+	 */
+	public function test_the_apcu_key_has_a_documented_layout() {
+		$cache = $this->new_request();
+		$this->set_private( $cache, 'key_salt', 'salty' );
+		$base = 'salty:' . md5( ABSPATH );
+
+		$epoch = 'e1';
+		$site  = 's1';
+		$group = 'g1';
+		apcu_store( $base . ':Epoch:0', $epoch );
+		apcu_store( $base . ':SiteVersion:1', $site );
+		apcu_store( $base . ':SiteVersion:0', 's0' );
+		apcu_store( $base . ':GroupVersion:posts', $group );
+		apcu_store( $base . ':GroupVersion:global', 'g0' );
+		apcu_store( $base . ':GroupVersion:default', 'gd' );
+
+		$this->assertSame( $base . ':1:posts:my-key:ve1.s1.g1', $this->call_private( $cache, 'build_key', array( 'my-key', 'posts' ) ) );
+		$this->assertSame( $base . ':1:posts:7:ve1.s1.g1', $this->call_private( $cache, 'build_key', array( 7, 'posts' ) ) );
+		$this->assertSame( $base . ':0:global:my-key:ve1.s0.g0', $this->call_private( $cache, 'build_key', array( 'my-key', 'global' ) ) );
+		$this->assertSame( $base . ':1:default:my-key:ve1.s1.gd', $this->call_private( $cache, 'build_key', array( 'my-key', '' ) ) );
+
+		$cache->set( 'my-key', 'value', 'posts' );
+		$this->assertSame( 'value', apcu_fetch( $base . ':1:posts:my-key:ve1.s1.g1' ) );
+	}
 }
