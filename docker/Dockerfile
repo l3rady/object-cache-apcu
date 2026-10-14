@@ -6,6 +6,7 @@
 #   docker build --target dev      --build-arg PHP_VARIANT=fpm  ...   (php-fpm flavour)
 #   docker build --target wp-tests --build-arg WP_VERSION=7.1.3 ...   (WordPress core test suite)
 #   docker build --target coverage ...                                (adds pcov)
+#   docker build --target mutation ...                                (adds pcov and Infection)
 
 ARG PHP_VERSION=8.3
 ARG PHP_VARIANT=cli
@@ -74,6 +75,17 @@ RUN groupadd --gid "${HOST_GID}" dev \
 ENV COMPOSER_HOME=/home/dev/.composer
 USER dev
 WORKDIR /app
+
+# ---------------------------------------------------------------------------
+# mutation: coverage + Infection (mutation testing). Infection needs a newer PHP
+# than the 7.4 floor, so it is installed here and not as a Composer dependency.
+# ---------------------------------------------------------------------------
+FROM coverage AS mutation
+
+ARG INFECTION_VERSION=0.32.3
+RUN composer global config --no-plugins allow-plugins.infection/extension-installer true \
+    && composer global require --no-interaction --no-progress "infection/infection:${INFECTION_VERSION}"
+ENV PATH="/home/dev/.composer/vendor/bin:${PATH}"
 
 # ---------------------------------------------------------------------------
 # wp-tests: pinned wordpress-develop checkout to run WordPress's own PHPUnit
