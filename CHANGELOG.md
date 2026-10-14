@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.0.0](https://github.com/l3rady/object-cache-apcu/compare/v1.2.0...v2.0.0) (2026-10-11)
+## [2.0.0](https://github.com/l3rady/object-cache-apcu/compare/v1.2...v2.0.0) (2026-10-11)
 
 
 ### ⚠ BREAKING CHANGES
