@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/l3rady/object-cache-apcu/compare/v2.0.0...v2.0.1) (2026-10-14)
+
+
+### Bug Fixes
+
+* **cache:** return a copy of objects read from non-persistent groups ([372b87d](https://github.com/l3rady/object-cache-apcu/commit/372b87d46b19e21b00f4a4a6e485c7a9050eb2a2)), closes [#101](https://github.com/l3rady/object-cache-apcu/issues/101) [#95](https://github.com/l3rady/object-cache-apcu/issues/95)
+
 ## [2.0.0](https://github.com/l3rady/object-cache-apcu/compare/v1.2...v2.0.0) (2026-10-11)
 
 

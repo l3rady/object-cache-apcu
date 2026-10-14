@@ -5,7 +5,7 @@
  * Description: APCu backend for WordPress' Object Cache
  * Requires PHP: 7.4
  * x-release-please-start-version
- * Version: 2.0.0
+ * Version: 2.0.1
  * x-release-please-end
  * Author: Scott Cariss
  * Author URI: https://cariss.dev
