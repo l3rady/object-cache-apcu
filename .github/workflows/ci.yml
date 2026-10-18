@@ -63,6 +63,15 @@ jobs:
       - name: Composer install of the dist archive
         run: make test-composer
 
+  # The WordPress plugin version: its folder and zip build, and ship the same drop-in.
+  plugin:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build the plugin
+        run: make plugin
+
   # The script that attaches the single file to a release, rehearsed on every change
   # against this checkout's own version.
   release-assets:

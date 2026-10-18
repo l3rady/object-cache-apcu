@@ -16,6 +16,7 @@ return RectorConfig::configure()
 	->withPaths(
 		array(
 			__DIR__ . '/object-cache.php',
+			__DIR__ . '/plugin',
 			__DIR__ . '/tests',
 		)
 	)

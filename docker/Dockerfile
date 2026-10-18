@@ -28,7 +28,7 @@ RUN . /etc/os-release \
     fi
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends git unzip \
+    && apt-get install -y --no-install-recommends git unzip zip \
     && rm -rf /var/lib/apt/lists/*
 
 # PECL resolves the newest APCu that supports this PHP version.

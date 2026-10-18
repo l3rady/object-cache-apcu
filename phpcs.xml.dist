@@ -4,6 +4,7 @@
 
 	<file>object-cache.php</file>
 	<file>tests</file>
+	<file>plugin</file>
 	<exclude-pattern>*/vendor/*</exclude-pattern>
 
 	<arg name="extensions" value="php"/>
@@ -54,6 +55,7 @@
 			<property name="prefixes" type="array">
 				<element value="wp_cache"/>
 				<element value="wp_object_cache"/>
+				<element value="apcu_object_cache"/>
 			</property>
 		</properties>
 	</rule>

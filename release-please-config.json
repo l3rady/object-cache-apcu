@@ -10,6 +10,8 @@
       "changelog-path": "CHANGELOG.md",
       "extra-files": [
         "object-cache.php",
+        "plugin/apcu-object-cache.php",
+        "plugin/readme.txt",
         "README.md"
       ]
     }

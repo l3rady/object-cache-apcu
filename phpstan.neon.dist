@@ -6,6 +6,7 @@ parameters:
     phpVersion: 70400
     paths:
         - object-cache.php
+        - plugin
     scanFiles:
         - vendor/php-stubs/wordpress-stubs/wordpress-stubs.php
     treatPhpDocTypesAsCertain: false
