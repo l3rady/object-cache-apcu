@@ -23,7 +23,7 @@ COMMITS_FROM ?= origin/main
 COMMITS_TO   ?= HEAD
 
 .DEFAULT_GOAL := help
-.PHONY: help build shell composer deps lint commits fix smoke test test-apcu test-known-bugs coverage mutation test-wp test-wp-ms test-core test-composer stan rector rector-fix matrix clean bench
+.PHONY: help build shell composer deps lint commits fix smoke test test-apcu test-known-bugs coverage mutation test-wp test-wp-ms test-core test-composer plugin stan rector rector-fix matrix clean bench
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "} {printf "  %-12s %s\n", $$1, $$2}'
@@ -72,6 +72,9 @@ test-known-bugs: deps ## Run tests that document open bugs (they are expected to
 
 test-composer: deps ## Install the dist archive with Composer and check what lands in the content directory
 	$(COMPOSE) run --build --rm php sh docker/composer-install-test.sh
+
+plugin: ## Build the WordPress plugin version into build/ (folder and zip)
+	$(COMPOSE) run --build --rm php sh bin/build-plugin.sh
 
 bench: deps ## Time the *_multiple functions against loops of single calls
 	$(COMPOSE) run --build --rm php php tests/bench/multiple.php
