@@ -120,7 +120,7 @@ CMD ["php", "./vendor/bin/phpunit", "--group", "cache"]
 # commitlint: checks that commit messages follow Conventional Commits.
 # Separate from the PHP image because it is the only thing here that needs Node.
 # ---------------------------------------------------------------------------
-FROM node:22-alpine AS commitlint
+FROM node:26-alpine AS commitlint
 
 ENV NODE_PATH=/usr/local/lib/node_modules
 
